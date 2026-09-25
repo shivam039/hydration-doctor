@@ -1,0 +1,41 @@
+{
+  "name": "hydration-doctor",
+  "version": "0.1.0",
+  "description": "Reproduce and diagnose SSR/CSR and navigation inconsistencies in web applications.",
+  "type": "module",
+  "bin": {
+    "hydration-doctor": "./src/cli/index.js"
+  },
+  "exports": {
+    ".": "./src/index.js",
+    "./config": "./src/config/index.js"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "files": [
+    "src/",
+    "README.md",
+    "LICENSE",
+    "docs/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shivam039/hydration-doctor.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "check": "npm run lint && npm test && npm run format:check"
+  },
+  "dependencies": {
+    "playwright": "^1.55.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.35.0",
+    "prettier": "^3.6.2"
+  }
+}
