@@ -1,0 +1,7 @@
+test/
+fixtures/
+.github/
+.gitignore
+.npmignore
+.editorconfig
+eslint.config.js

@@ -5,33 +5,35 @@ This roadmap records scope, dependencies, acceptance, and evidence for the 18 ep
 ## Progress ledger
 
 - **Repository baseline (2026-09-25):** inspected authenticated repository `shivam039/hydration-doctor`; it was empty (no commits or files). No pre-existing code/configuration to preserve.
-- **Active:** Phase 1 (HD-01–HD-04).
+- **Active:** Phase 1 completion and Phase 2 foundations (HD-01–HD-09), with reporting/security groundwork (HD-13/14).
 - **Completed:** none.
-- **Verification:** pending implementation. GitHub issue creation via the connected GitHub integration returned HTTP 403 (`Resource not accessible by integration`); no remote issues are claimed. This document is the issue-ready local backlog.
-- **Release state:** not release-ready; no feature has been verified yet.
+- **Verification (expanded local checkpoint, 2026-09-25):** `npm run check` passed: ESLint, 20 Node tests, and Prettier. Tests exercise real Chromium navigation/refresh/client-history, redirects, retry variance, real React 18 mismatch vs healthy output, SSR/client snapshots with ignore rules, HTML evidence opt-in/redaction/size bounds, HTML report escaping, and CLI report writing. Existing CI matrix run [#36147827187](https://github.com/shivam039/hydration-doctor/actions/runs/36147827187) passed on Node 20, 22, and 24 for the earlier Phase 1 commit; this expanded checkpoint has not yet run in CI. No Next.js fixture, visual diff, static analysis, or package release is claimed.
+- **Implementation checkpoint:** feature commit [`31c5d81`](https://github.com/shivam039/hydration-doctor/commit/31c5d81) is on [`feat/phase-1-foundation-cli-navigation`](https://github.com/shivam039/hydration-doctor/tree/feat/phase-1-foundation-cli-navigation); draft [PR #19](https://github.com/shivam039/hydration-doctor/pull/19). Follow-up commits and later phase evidence belong here; do not merge while incomplete.
+- **GitHub issues:** created and confirmed with `gh`: [HD-01 #1](https://github.com/shivam039/hydration-doctor/issues/1), [HD-02 #2](https://github.com/shivam039/hydration-doctor/issues/2), [HD-03 #3](https://github.com/shivam039/hydration-doctor/issues/3), [HD-04 #4](https://github.com/shivam039/hydration-doctor/issues/4), [HD-05 #5](https://github.com/shivam039/hydration-doctor/issues/5), [HD-06 #6](https://github.com/shivam039/hydration-doctor/issues/6), [HD-07 #7](https://github.com/shivam039/hydration-doctor/issues/7), [HD-08 #8](https://github.com/shivam039/hydration-doctor/issues/8), [HD-09 #9](https://github.com/shivam039/hydration-doctor/issues/9), [HD-10 #10](https://github.com/shivam039/hydration-doctor/issues/10), [HD-11 #11](https://github.com/shivam039/hydration-doctor/issues/11), [HD-12 #12](https://github.com/shivam039/hydration-doctor/issues/12), [HD-13 #13](https://github.com/shivam039/hydration-doctor/issues/13), [HD-14 #14](https://github.com/shivam039/hydration-doctor/issues/14), [HD-15 #15](https://github.com/shivam039/hydration-doctor/issues/15), [HD-16 #16](https://github.com/shivam039/hydration-doctor/issues/16), [HD-17 #17](https://github.com/shivam039/hydration-doctor/issues/17), [HD-18 #18](https://github.com/shivam039/hydration-doctor/issues/18).
+- **Release state:** not release-ready. Phase 1 remains in progress; selected HD-05, HD-08, HD-13 and HD-14 capabilities are implemented and locally tested, while framework breadth, interaction, state/data, visual comparison, static analysis, release engineering and compatibility evidence remain outstanding.
 
 ## Epic index
 
-| ID | Epic | Phase | Depends on | Status |
-|---|---|---:|---|---|
-| HD-01 | Repository Foundation | 1 | — | In progress |
-| HD-02 | CLI and Configuration | 1 | HD-01 | In progress |
-| HD-03 | Browser Runtime Engine | 1 | HD-01, HD-02 | Planned |
-| HD-04 | Navigation Consistency | 1 | HD-02, HD-03 | Planned |
-| HD-05 | SSR and Hydration Instrumentation | 2 | HD-03 | Planned |
-| HD-06 | React and Next.js Adapters | 2 | HD-05 | Planned |
-| HD-07 | Hydration Interactivity Testing | 2 | HD-03, HD-05 | Planned |
-| HD-08 | DOM and Structural Comparison | 2 | HD-03 | Planned |
-| HD-09 | Loading, State, and Data Consistency | 2 | HD-04, HD-05 | Planned |
-| HD-10 | Visual and Layout Regression | 3 | HD-08 | Planned |
-| HD-11 | Root-Cause Diagnostics | 3 | HD-05, HD-08, HD-09, HD-10 | Planned |
-| HD-12 | Optional Static Analysis | 3 | HD-01 | Planned |
-| HD-13 | Reporting and Developer Experience | 4 | HD-08, HD-10, HD-11, HD-14 | Planned |
-| HD-14 | Security, Privacy, and Reliability | 4 | HD-01 onward | Planned |
-| HD-15 | Fixtures and Automated Testing | Continuous | HD-01 onward | In progress (continuous) |
-| HD-16 | CI/CD and npm Release Engineering | 5 | HD-01, HD-15 | Planned |
-| HD-17 | Documentation and Open-Source Readiness | 5 | HD-02, HD-13, HD-14 | Planned |
-| HD-18 | Extensibility and Stable Release | 5 | HD-01–HD-17 | Planned |
+| ID    | Epic                                    |      Phase | Depends on                 | Status                   |
+| ----- | --------------------------------------- | ---------: | -------------------------- | ------------------------ |
+| HD-01 | Repository Foundation                   |          1 | —                          | In progress              |
+| HD-02 | CLI and Configuration                   |          1 | HD-01                      | In progress              |
+| HD-03 | Browser Runtime Engine                  |          1 | HD-01, HD-02               | In progress              |
+| HD-04 | Navigation Consistency                  |          1 | HD-02, HD-03               | In progress              |
+| HD-05 | SSR and Hydration Instrumentation       |          2 | HD-03                      | In progress              |
+| HD-06 | React and Next.js Adapters              |          2 | HD-05                      | Planned                  |
+| HD-07 | Hydration Interactivity Testing         |          2 | HD-03, HD-05               | Planned                  |
+| HD-08 | DOM and Structural Comparison           |          2 | HD-03                      | In progress              |
+| HD-09 | Loading, State, and Data Consistency    |          2 | HD-04, HD-05               | Planned                  |
+| HD-10 | Visual and Layout Regression            |          3 | HD-08                      | Planned                  |
+| HD-11 | Root-Cause Diagnostics                  |          3 | HD-05, HD-08, HD-09, HD-10 | Planned                  |
+| HD-12 | Optional Static Analysis                |          3 | HD-01                      | Planned                  |
+| HD-13 | Reporting and Developer Experience      |          4 | HD-08, HD-10, HD-11, HD-14 | In progress              |
+| HD-14 | Security, Privacy, and Reliability      |          4 | HD-01 onward               | In progress              |
+| HD-15 | Fixtures and Automated Testing          | Continuous | HD-01 onward               | In progress (continuous) |
+| HD-16 | CI/CD and npm Release Engineering       |          5 | HD-01, HD-15               | Planned                  |
+| HD-17 | Documentation and Open-Source Readiness |          5 | HD-02, HD-13, HD-14        | Planned                  |
+| HD-18 | Extensibility and Stable Release        |          5 | HD-01–HD-17                | Planned                  |
 
 ## Epics, acceptance, and completion evidence
 
