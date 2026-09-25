@@ -65,17 +65,17 @@ export async function runPage(browser, url, config, scenario) {
       timeout: config.timeout,
     });
     if (!response) throw new Error(`No document response received for ${url}`);
-    if (scenario.name !== "client-navigation")
+    if (scenario.name === "direct")
       await assertExpected(page, scenario.route, config.timeout);
     const result = {
       scenario: scenario.name,
       url: page.url(),
       status: response.status(),
-      passed: response.status() < 400,
+      passed: false,
       findings: [],
       events,
     };
-    if (response.status() >= 400)
+    if (response.status() >= 400 && scenario.name !== "refresh")
       result.findings.push(`Document returned HTTP ${response.status()}.`);
     if (scenario.name === "refresh") {
       events.documentNavigations = 0;
@@ -108,8 +108,10 @@ export async function runPage(browser, url, config, scenario) {
       await assertExpected(page, scenario.route, config.timeout);
       result.url = page.url();
     }
-    result.passed &&=
-      result.findings.length === 0 && events.pageErrors.length === 0;
+    result.passed =
+      result.status < 400 &&
+      result.findings.length === 0 &&
+      events.pageErrors.length === 0;
     if (events.pageErrors.length)
       result.findings.push(
         `${events.pageErrors.length} uncaught page error(s).`,
