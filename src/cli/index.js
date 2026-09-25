@@ -1,10 +1,16 @@
 #!/usr/bin/env node
-import { writeFile } from "node:fs/promises";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import { loadConfig, validateConfig } from "../config/index.js";
 import { scan } from "../runtime/scan.js";
 import { withBrowser } from "../browser/engine.js";
+import {
+  formatHtmlReport,
+  formatJsonReport,
+  formatTerminalReport,
+} from "../reporters/index.js";
 
 const VERSION = "0.1.0";
 
@@ -45,6 +51,8 @@ export async function main(args = process.argv.slice(2), io = console) {
       return 0;
     }
     const [command, ...rest] = options.positional;
+    if (rest.length) throw new Error(`Unexpected argument: ${rest[0]}`);
+    assertKnownOptions(command, options);
     if (command === "init") return await init(options, io);
     if (command === "doctor") return await doctor(options, io);
     if (command === "scan") return await scanCommand(options, rest, io);
@@ -57,25 +65,46 @@ export async function main(args = process.argv.slice(2), io = console) {
   }
 }
 
+function assertKnownOptions(command, options) {
+  const allowed = {
+    init: new Set(["config"]),
+    doctor: new Set(["browser"]),
+    scan: new Set([
+      "config",
+      "url",
+      "route",
+      "browser",
+      "reporter",
+      "timeout",
+      "concurrency",
+      "retries",
+      "output",
+    ]),
+  }[command];
+  const unknown = Object.keys(options).filter(
+    (key) => key !== "positional" && !allowed?.has(key),
+  );
+  if (unknown.length)
+    throw new Error(
+      `Unknown option(s) for ${command ?? "command"}: ${unknown.join(", ")}.`,
+    );
+}
+
 async function init(options, io) {
   const filename = options.config ?? "hydration-doctor.config.js";
-  const configUrl = pathToFileURL(
-    new URL(filename, `file://${process.cwd()}/`).pathname,
-  );
   try {
-    await import(configUrl.href);
-    throw new Error(
-      `Configuration already exists at ${filename}; it was not changed.`,
+    await writeFile(
+      filename,
+      `export default {\n  baseUrl: "http://localhost:3000",\n  routes: [\n    { path: "/", expectedSelector: "main" },\n  ],\n};\n`,
+      { flag: "wx", mode: 0o600 },
     );
   } catch (error) {
-    if (error.message.startsWith("Configuration already exists")) throw error;
-    if (error.code !== "ERR_MODULE_NOT_FOUND") throw error;
+    if (error.code === "EEXIST")
+      throw new Error(
+        `Configuration already exists at ${filename}; it was not changed.`,
+      );
+    throw error;
   }
-  await writeFile(
-    filename,
-    `export default {\n  baseUrl: "http://localhost:3000",\n  routes: [\n    { path: "/", expectedSelector: "main" },\n  ],\n};\n`,
-    { flag: "wx" },
-  );
   io.log(
     `Created ${filename}. Edit its routes and start your application before scanning.`,
   );
@@ -115,30 +144,56 @@ async function scanCommand(options, positional, io) {
     });
   } else throw new Error("scan needs --config <path> or --url <url>.");
   if (options.route && options.url) config.routes = [{ path: options.route }];
-  if (options.browser) config.browser = options.browser;
-  if (options.reporter) config.reporter = options.reporter;
+  config = validateConfig({
+    ...config,
+    ...(options.browser ? { browser: options.browser } : {}),
+    ...(options.reporter ? { reporter: options.reporter } : {}),
+    ...(options.timeout ? { timeout: Number(options.timeout) } : {}),
+    ...(options.concurrency
+      ? { concurrency: Number(options.concurrency) }
+      : {}),
+    ...(options.retries ? { retries: Number(options.retries) } : {}),
+  });
   if (positional.length)
     throw new Error(`Unexpected scan argument: ${positional[0]}`);
   const report = await scan(config);
-  if (options.output)
-    await writeFile(options.output, `${JSON.stringify(report, null, 2)}\n`, {
-      flag: "wx",
-    });
-  if (config.reporter === "json") io.log(JSON.stringify(report, null, 2));
-  else {
-    for (const result of report.results) {
-      io.log(
-        `${result.passed ? "PASS" : "FAIL"} ${result.scenario} ${result.url}${result.findings.length ? ` — ${result.findings.join("; ")}` : ""}`,
-      );
+  const reporters = Array.isArray(config.reporter)
+    ? config.reporter
+    : [config.reporter];
+  if (options.output) {
+    if (reporters.length > 1) {
+      await mkdir(options.output, { recursive: true });
+      for (const reporter of reporters.filter((item) => item !== "text")) {
+        const extension = reporter === "json" ? "json" : "html";
+        await writeFile(
+          path.join(
+            options.output,
+            `hydration-doctor-${report.runId}.${extension}`,
+          ),
+          reporter === "json"
+            ? `${formatJsonReport(report)}\n`
+            : formatHtmlReport(report),
+          { flag: "wx" },
+        );
+      }
+    } else if (reporters[0] === "html") {
+      await writeFile(options.output, formatHtmlReport(report), { flag: "wx" });
+    } else if (reporters[0] === "json") {
+      await writeFile(options.output, `${formatJsonReport(report)}\n`, {
+        flag: "wx",
+      });
+    } else {
+      await writeFile(options.output, `${formatJsonReport(report)}\n`, {
+        flag: "wx",
+      });
     }
-    io.log(
-      `Scan ${report.status}; ${report.results.filter((item) => item.passed).length}/${report.results.length} scenarios passed.`,
-    );
   }
+  if (reporters.includes("json")) io.log(formatJsonReport(report));
+  else io.log(formatTerminalReport(report));
   return report.status === "passed" ? 0 : 1;
 }
 
-const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, optional navigation, timeout, browser, reporter, and viewport. CLI browser/reporter values override config. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error. HTML reports are planned for a later phase.\n`;
+const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, optional navigation, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. For multiple reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
 
 if (
   process.argv[1] &&
