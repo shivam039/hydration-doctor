@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.2.0
 
-**Status:** Implementation complete, GitHub Actions matrix pending  
+**Status:** Implemented, verified, and tracked issues closed
 **Audience:** React and Next.js application developers using Hydration Doctor in local development or CI  
 **Release intent:** Improve confidence in the existing 0.1.x diagnostic foundation without claiming stable APIs or broad framework coverage.
 
