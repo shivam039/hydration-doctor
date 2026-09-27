@@ -7,6 +7,7 @@ Use `--exclude 'src/generated/**,**/*.stories.tsx'` to skip matching source file
 The analyzer currently reports these candidates:
 
 - Browser-global member access rooted at `window`, `document`, `navigator`, `localStorage`, or `sessionStorage`.
+- `typeof` guards that check `window`, `document`, or `navigator`, since a server/client branch may render different output.
 - Calls/references to `Date.now` or `Math.random`.
 - Zero-argument `new Date()` construction.
 - `Intl.DateTimeFormat` and calls to `toLocaleString`, `toLocaleDateString`, or `toLocaleTimeString`.

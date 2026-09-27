@@ -128,6 +128,14 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
       let rule;
       let evidence;
       if (
+        node.type === "UnaryExpression" &&
+        node.operator === "typeof" &&
+        node.argument.type === "Identifier" &&
+        ["window", "document", "navigator"].includes(node.argument.name)
+      ) {
+        rule = "browser-environment-branch-candidate";
+        evidence = "typeof browser global";
+      } else if (
         node.type === "MemberExpression" &&
         !(parent?.type === "MemberExpression" && parent.object === node)
       ) {
