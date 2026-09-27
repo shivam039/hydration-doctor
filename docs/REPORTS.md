@@ -16,4 +16,4 @@ Interpretation guidance:
 
 Reports may contain application text and DOM attributes when snapshots are enabled. HTML evidence is opt-in and bounded. Configured screenshots can include any visible application data. Review artifacts before sharing them. See [security guidance](security/ADVERSARIAL_REVIEW_2026-09-27.md) for collection limits and redaction behavior.
 
-The JSON schema is currently versioned by `schemaVersion`; no separate formal JSON Schema is published yet. Consumers should reject unknown major schema versions and tolerate additional fields.
+The structural contract for `schemaVersion: 1` is published as the [JSON Schema](schema/report-v1.schema.json). Consumers should reject unknown schema versions and tolerate additional fields within version 1. Diagnostic categories and explanatory prose can grow over time; integrations should branch on schema version and stable category identifiers rather than prose.

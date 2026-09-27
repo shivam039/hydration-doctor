@@ -38,6 +38,7 @@
     "pngjs": "^7.0.0"
   },
   "devDependencies": {
+    "ajv": "^8.20.0",
     "eslint": "^9.35.0",
     "next": "^15.5.26",
     "prettier": "^3.6.2",

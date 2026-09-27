@@ -14,7 +14,7 @@ The package exports the following entry points from `hydration-doctor`:
 
 The `hydration-doctor/config` subpath exports `defineConfig`, `loadConfig`, and `validateConfig`.
 
-The scan result uses `schemaVersion: 1`. Reports contain route/scenario results and diagnostics; see [reading reports](REPORTS.md) for meaning and privacy limits. Additive report fields may appear within schema version 1. Consumers should tolerate unknown fields and should not depend on incidental diagnostic prose.
+The scan result uses `schemaVersion: 1`. The [JSON Schema for report version 1](schema/report-v1.schema.json) defines the structural contract. Reports contain route/scenario results and diagnostics; see [reading reports](REPORTS.md) for meaning and privacy limits. Additive report fields may appear within schema version 1. Consumers should tolerate unknown fields and should not depend on incidental diagnostic prose.
 
 For persistent visual comparison, set `routes[].visual.baseline` to a simple PNG filename and optionally set `baselineDir`. A normal scan reads but never writes that file; the CLI's `--update-baselines` flag explicitly creates or replaces configured baseline files. A missing baseline produces an inconclusive scan result.
 
