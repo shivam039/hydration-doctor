@@ -1,7 +1,7 @@
 import { execFile, execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +27,13 @@ try {
     cwd: repository,
     stdio: "ignore",
   });
-  const tarball = path.join(temporaryDirectory, "hydration-doctor-0.1.0.tgz");
+  const { version } = JSON.parse(
+    await readFile(path.join(repository, "package.json"), "utf8"),
+  );
+  const tarball = path.join(
+    temporaryDirectory,
+    `hydration-doctor-${version}.tgz`,
+  );
   execFileSync(
     "npm",
     [

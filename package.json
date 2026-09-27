@@ -1,7 +1,7 @@
 {
   "name": "hydration-doctor",
-  "version": "0.1.0",
-  "description": "Reproduce and diagnose SSR/CSR and navigation inconsistencies in web applications.",
+  "version": "0.23.0",
+  "description": "Experimental pre-1.0 CLI for checking SSR/CSR and navigation inconsistencies; APIs may change.",
   "type": "module",
   "bin": {
     "hydration-doctor": "./src/cli/index.js"
@@ -16,6 +16,7 @@
   "files": [
     "src/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
     "docs/"
   ],

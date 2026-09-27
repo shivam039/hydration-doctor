@@ -20,6 +20,6 @@ The scan result uses `schemaVersion: 1`. The [JSON Schema for report version 1](
 
 For persistent visual comparison, set `routes[].visual.baseline` to a simple PNG filename and optionally set `baselineDir`. A normal scan reads but never writes that file; the CLI's `--update-baselines` flag explicitly creates or replaces configured baseline files. A missing baseline produces an inconclusive scan result.
 
-Hydration Doctor is currently version 0.1.0. The package API and configuration format are documented but not yet declared stable for 1.0 compatibility. Breaking changes may occur before a stable release.
+Hydration Doctor is experimental and pre-1.0. The package version is a repository development version, not evidence of npm publication. Public API and configuration stability is not guaranteed; breaking changes may occur between 0.x versions without migration guarantees. See the [release process](RELEASING.md) and [changelog](../CHANGELOG.md).
 
 The export names and representative helper behavior are pinned by [`test/public-api.test.js`](../test/public-api.test.js). A fresh packed-package installation and browser scan is covered by `npm run test:consumer`.
