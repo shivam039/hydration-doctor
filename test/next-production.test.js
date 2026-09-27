@@ -189,6 +189,38 @@ test(
       forward: true,
     });
 
+    const pagesClientNavigation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 15_000,
+      navigation: {
+        from: "/pages-router",
+        click: 'a[href="/pages-router-destination"]',
+        to: "/pages-router-destination",
+      },
+      routes: [
+        {
+          path: "/pages-router-destination",
+          expectedSelector: "main",
+          expectedText: "Next Pages Router destination ready",
+          readySelector: "main",
+        },
+      ],
+    });
+    assert.equal(pagesClientNavigation.status, "passed");
+    const pagesNavigationResult = pagesClientNavigation.results[2];
+    assert.equal(pagesNavigationResult.scenario, "client-navigation");
+    assert.equal(pagesNavigationResult.passed, true);
+    assert.match(pagesNavigationResult.url, /pages-router-destination$/);
+    assert.doesNotMatch(
+      pagesNavigationResult.findings.join(" "),
+      /Navigation used a new document request/,
+    );
+    assert.deepEqual(pagesNavigationResult.events.history, {
+      back: true,
+      forward: true,
+    });
+
     const failedTransitionExpectation = await scan({
       baseUrl,
       browser: "chromium",
