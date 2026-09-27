@@ -38,6 +38,13 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/responsive-visual") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        "<html><head><style>body{margin:0}main{height:240px;width:70vw;background:#146e91;color:white;padding:16px;box-sizing:border-box}@media(max-width:600px){main{width:100vw;height:180px;background:#ac2e10}}</style></head><body><main>Responsive visual fixture</main></body></html>",
+      );
+      return;
+    }
     if (
       pathname === "/state-restoration" ||
       pathname === "/state-restoration-broken"

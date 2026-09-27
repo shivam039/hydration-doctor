@@ -148,7 +148,38 @@ test("parses CLI options and rejects missing option values", () => {
       .updateBaselines,
     true,
   );
+  assert.equal(
+    parseArgs(["scan", "--config", "config.js", "--viewport", "390x844"])
+      .viewport,
+    "390x844",
+  );
   assert.throws(() => parseArgs(["scan", "--url"]), /requires a value/);
+});
+
+test("rejects malformed and out-of-range viewport CLI overrides", async () => {
+  const errors = [];
+  const io = {
+    log() {},
+    error(value) {
+      errors.push(value);
+    },
+  };
+  assert.equal(
+    await main(
+      ["scan", "--url", "http://localhost", "--viewport", "mobile"],
+      io,
+    ),
+    2,
+  );
+  assert.match(errors.at(-1), /WIDTHxHEIGHT/);
+  assert.equal(
+    await main(
+      ["scan", "--url", "http://localhost", "--viewport", "9000x9000"],
+      io,
+    ),
+    2,
+  );
+  assert.match(errors.at(-1), /viewport width and height/);
 });
 
 test("help and version commands are executable", async () => {

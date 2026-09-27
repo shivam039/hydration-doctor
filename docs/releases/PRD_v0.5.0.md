@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.5.0
 
-**Status:** Implementation in progress
+**Status:** Implemented, verified, and issue #27 closed
 **Iteration:** 3 of 5  
 **Audience:** JavaScript/JSX application developers reviewing possible server/client render differences
 

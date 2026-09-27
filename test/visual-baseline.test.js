@@ -17,6 +17,7 @@ import { validateConfig } from "../src/config/index.js";
 import { formatHtmlReport } from "../src/reporters/html.js";
 import { main } from "../src/cli/index.js";
 import { readVisualBaseline } from "../src/comparison/baselines.js";
+import { startNavigationFixture } from "../fixtures/navigation-app.js";
 
 test("compares persistent visual baselines and only writes in explicit update mode", async (t) => {
   const tempRoot = await mkdtemp(path.join(tmpdir(), "hd-baseline-"));
@@ -106,4 +107,79 @@ test("rejects baseline paths that could escape the configured directory", () => 
       }),
     /simple PNG filename/,
   );
+});
+
+test("creates and compares separate desktop and mobile baseline profiles through the CLI", async (t) => {
+  const tempRoot = await mkdtemp(path.join(tmpdir(), "hd-viewport-"));
+  const baselineDir = path.join(tempRoot, "baselines");
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(async () => {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  for (const profile of [
+    { name: "desktop", viewport: "1280x800", width: 1280, height: 800 },
+    { name: "mobile", viewport: "390x844", width: 390, height: 844 },
+  ]) {
+    const baseline = `responsive-${profile.name}.png`;
+    const configPath = path.join(tempRoot, `${profile.name}.config.mjs`);
+    const config = {
+      baseUrl,
+      baselineDir,
+      reporter: "json",
+      viewport: { width: 1280, height: 800 },
+      routes: [
+        {
+          path: "/responsive-visual",
+          expectedText: "Responsive visual fixture",
+          visual: { baseline, maxDiffRatio: 0 },
+        },
+      ],
+    };
+    await writeFile(configPath, `export default ${JSON.stringify(config)};`);
+
+    let output = "";
+    const io = {
+      log(value) {
+        output = value;
+      },
+      error(value) {
+        throw new Error(value);
+      },
+    };
+    assert.equal(
+      await main(
+        [
+          "scan",
+          "--config",
+          configPath,
+          "--viewport",
+          profile.viewport,
+          "--update-baselines",
+        ],
+        io,
+      ),
+      0,
+    );
+    const updated = JSON.parse(output);
+    assert.equal(updated.results[0].visualScreenshot.width, profile.width);
+    assert.equal(updated.results[0].visualScreenshot.height, profile.height);
+    assert.equal(updated.results[0].visualBaseline.status, "updated");
+
+    assert.equal(
+      await main(
+        ["scan", "--config", configPath, "--viewport", profile.viewport],
+        io,
+      ),
+      0,
+    );
+    const compared = JSON.parse(output);
+    assert.equal(compared.results[0].visualBaseline.status, "matched");
+    assert.equal(compared.results[0].visualScreenshot.width, profile.width);
+    assert.equal(compared.results[0].visualScreenshot.height, profile.height);
+    assert.ok((await readFile(path.join(baselineDir, baseline))).length > 0);
+  }
 });

@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.6.0
 
-**Status:** Planned  
+**Status:** Implementation in progress
 **Iteration:** 4 of 5  
 **Audience:** Developers comparing responsive layouts in CI or local scans
 
@@ -29,7 +29,7 @@ Add a validated `--viewport WIDTHxHEIGHT` CLI override and document/test indepen
 
 ## Issue
 
-- **HD-NR-7:** viewport CLI override and responsive visual profiles — tracked as a GitHub issue during iteration 4.
+- **HD-NR-7:** viewport CLI override and responsive visual profiles — [issue #28](https://github.com/shivam039/hydration-doctor/issues/28).
 
 ## Verification
 
