@@ -12,7 +12,9 @@ async function OuterPanel() {
   return (
     <section>
       <p id="outer-stream-ready">Outer stream section ready</p>
-      <Suspense fallback={<p id="inner-stream-fallback">Loading inner section</p>}>
+      <Suspense
+        fallback={<p id="inner-stream-fallback">Loading inner section</p>}
+      >
         <InnerPanel />
       </Suspense>
     </section>
@@ -22,7 +24,9 @@ async function OuterPanel() {
 export default function NestedStreamingPage() {
   return (
     <main>
-      <Suspense fallback={<p id="outer-stream-fallback">Loading outer section</p>}>
+      <Suspense
+        fallback={<p id="outer-stream-fallback">Loading outer section</p>}
+      >
         <OuterPanel />
       </Suspense>
     </main>
