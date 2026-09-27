@@ -63,6 +63,17 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (
+      pathname === "/state-race-ready" ||
+      pathname === "/state-race-stalled"
+    ) {
+      const ready = pathname.endsWith("ready");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><p id="state">Loading saved preference</p></main><script>setTimeout(()=>{${ready ? "document.querySelector('#state').textContent='Saved preference ready';document.documentElement.dataset.hydrated='true';" : ""}},350)</script></body></html>`,
+      );
+      return;
+    }
     if (pathname === "/auth-protected") {
       response.writeHead(200, { "content-type": "text/html" });
       response.end(

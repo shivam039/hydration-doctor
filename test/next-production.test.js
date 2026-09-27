@@ -81,6 +81,52 @@ test(
       readyContentBeforeStream: false,
     });
 
+    const nestedStreamingPage = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/nested-streaming"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/nested-streaming`, {
+          waitUntil: "commit",
+          timeout: 10_000,
+        });
+        await page.locator("#outer-stream-fallback").waitFor({
+          state: "visible",
+          timeout: 5000,
+        });
+        const outerReadyBeforeStream = await page
+          .locator("#outer-stream-ready")
+          .isVisible()
+          .catch(() => false);
+        await page.locator("#outer-stream-ready").waitFor({
+          state: "visible",
+          timeout: 5000,
+        });
+        await page.locator("#inner-stream-fallback").waitFor({
+          state: "visible",
+          timeout: 5000,
+        });
+        const innerReadyBeforeStream = await page
+          .locator("#nested-stream-ready")
+          .isVisible()
+          .catch(() => false);
+        await page.locator("#nested-stream-ready").waitFor({
+          state: "visible",
+          timeout: 5000,
+        });
+        await page.close();
+        return { outerReadyBeforeStream, innerReadyBeforeStream };
+      },
+    );
+    assert.deepEqual(nestedStreamingPage, {
+      outerReadyBeforeStream: false,
+      innerReadyBeforeStream: false,
+    });
+
     const delayedClientPage = await withBrowser(
       validateConfig({
         baseUrl,
@@ -135,6 +181,12 @@ test(
           readySelector: "main",
         },
         {
+          path: "/nested-streaming",
+          expectedSelector: "#nested-stream-ready",
+          expectedText: "Nested stream content ready",
+          readySelector: "#nested-stream-ready",
+        },
+        {
           path: "/delayed-client",
           expectedSelector: "#delayed-client-ready",
           expectedText: "Delayed client module ready",
@@ -146,6 +198,8 @@ test(
     assert.deepEqual(
       report.results.map((result) => [result.scenario, result.passed]),
       [
+        ["direct", true],
+        ["refresh", true],
         ["direct", true],
         ["refresh", true],
         ["direct", true],
@@ -287,6 +341,32 @@ test(
     );
     assert.doesNotMatch(
       JSON.stringify(incomplete.results[0].diagnostics),
+      /confirmed-hydration/,
+    );
+
+    const nestedStart = Date.now();
+    const incompleteNestedStream = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 2000,
+      routes: [
+        {
+          path: "/nested-streaming",
+          expectedText: "Text that never streams",
+        },
+      ],
+    });
+    assert.equal(incompleteNestedStream.status, "failed");
+    assert.ok(Date.now() - nestedStart < 10_000);
+    assert.equal(incompleteNestedStream.results[0].passed, false);
+    assert.ok(
+      incompleteNestedStream.results[0].diagnostics.some(
+        (diagnostic) => diagnostic.category === "missing-expected-ui",
+      ),
+      JSON.stringify(incompleteNestedStream.results[0]),
+    );
+    assert.doesNotMatch(
+      JSON.stringify(incompleteNestedStream.results[0].diagnostics),
       /confirmed-hydration/,
     );
   },
