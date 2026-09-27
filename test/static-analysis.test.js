@@ -137,6 +137,36 @@ test("analyze command returns candidate findings as JSON without failing the sca
   assert.equal(report.findings[0].line, 1);
 });
 
+test("analyze CLI accepts comma-separated source exclusions", async (t) => {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-analyze-exclude-"),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "generated"));
+  await writeFile(path.join(root, "generated", "app.js"), "window.hidden;\n");
+  await writeFile(path.join(root, "app.js"), "window.visible;\n");
+  let output = "";
+  const exitCode = await main(
+    ["analyze", "--source", root, "--exclude", "generated/**,**/*.spec.js"],
+    {
+      log(value) {
+        output = value;
+      },
+      error(value) {
+        throw new Error(value);
+      },
+    },
+  );
+  assert.equal(exitCode, 0);
+  const report = JSON.parse(output);
+  assert.equal(report.filesScanned, 1);
+  assert.equal(report.skipped.excluded, 1);
+  assert.deepEqual(
+    report.findings.map(({ file }) => file),
+    ["app.js"],
+  );
+});
+
 test("reports implicit current time and locale-formatting candidates only", async (t) => {
   const root = await mkdtemp(
     path.join(tmpdir(), "hydration-doctor-time-locale-"),
@@ -189,4 +219,57 @@ test("reports implicit current time and locale-formatting candidates only", asyn
     ],
   );
   assert.doesNotMatch(JSON.stringify(report), /2020-01-01/);
+});
+
+test("applies relative source exclusion globs and reports the skipped count", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-exclude-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "src", "deep"), { recursive: true });
+  await writeFile(path.join(root, "root.js"), "window.rootValue;\n");
+  await writeFile(path.join(root, "src", "drop.js"), "window.dropValue;\n");
+  await writeFile(
+    path.join(root, "src", "deep", "drop.test.tsx"),
+    "window.testValue;\n",
+  );
+  await writeFile(path.join(root, "src", "keep1.js"), "window.keepValue;\n");
+
+  const report = await analyzeStaticSources(root, {
+    excludePatterns: ["src/**/drop.*", "**/*.test.tsx", "src/keep?.js"],
+  });
+  assert.equal(report.filesScanned, 1);
+  assert.equal(report.skipped.excluded, 3);
+  assert.deepEqual(
+    report.findings.map(({ file }) => file),
+    ["root.js"],
+  );
+});
+
+test("rejects source exclusion patterns that are unsafe or exceed limits", async () => {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-exclude-invalid-"),
+  );
+  try {
+    for (const pattern of [
+      "../src/*.js",
+      "/tmp/*.js",
+      "C:/src/*.ts",
+      "src\\*.js",
+      "src/[ab].js",
+    ]) {
+      await assert.rejects(
+        analyzeStaticSources(root, { excludePatterns: [pattern] }),
+        /Invalid source exclusion pattern|must stay relative|support only/,
+      );
+    }
+    await assert.rejects(
+      analyzeStaticSources(root, { excludePatterns: ["a".repeat(257)] }),
+      /Invalid source exclusion pattern/,
+    );
+    await assert.rejects(
+      analyzeStaticSources(root, { excludePatterns: Array(51).fill("*.js") }),
+      /at most 50/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

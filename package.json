@@ -36,6 +36,7 @@
   "dependencies": {
     "@typescript-eslint/typescript-estree": "^8.70.1",
     "espree": "^10.4.0",
+    "minimatch": "^9.0.9",
     "playwright": "^1.55.0",
     "pngjs": "^7.0.0"
   },

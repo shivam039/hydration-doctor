@@ -2,6 +2,7 @@ import { lstat, opendir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "espree";
 import { parse as parseTypeScript } from "@typescript-eslint/typescript-estree";
+import { Minimatch } from "minimatch";
 
 const JAVASCRIPT_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs"]);
 const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
@@ -20,6 +21,8 @@ const DEFAULT_EXCLUDES = new Set([
 const MAX_FILES = 500;
 const MAX_DIRECTORIES = 500;
 const MAX_FILE_BYTES = 1024 * 1024;
+const MAX_EXCLUDE_PATTERNS = 50;
+const MAX_EXCLUDE_PATTERN_LENGTH = 256;
 
 export async function analyzeStaticSources(rootDirectory, options = {}) {
   if (typeof rootDirectory !== "string" || !rootDirectory.trim())
@@ -29,6 +32,7 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
     ...DEFAULT_EXCLUDES,
     ...(options.excludeDirectories ?? []),
   ]);
+  const excludePatterns = compileExcludePatterns(options.excludePatterns);
   const files = [];
   const skipped = { excluded: 0, oversized: 0, limit: 0 };
   const pending = [root];
@@ -63,6 +67,14 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
         }
         if (!entry.isFile() || !SOURCE_EXTENSIONS.has(path.extname(entry.name)))
           continue;
+        const relativeFile = path
+          .relative(root, filename)
+          .split(path.sep)
+          .join("/");
+        if (excludePatterns.some((pattern) => pattern.match(relativeFile))) {
+          skipped.excluded += 1;
+          continue;
+        }
         if (files.length >= MAX_FILES) {
           skipped.limit += 1;
           continue;
@@ -177,6 +189,51 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
     parseErrors,
     findings,
   };
+}
+
+function compileExcludePatterns(patterns = []) {
+  if (!Array.isArray(patterns) || patterns.length > MAX_EXCLUDE_PATTERNS)
+    throw new TypeError(
+      `excludePatterns must be an array with at most ${MAX_EXCLUDE_PATTERNS} entries.`,
+    );
+  return patterns.map((pattern) => {
+    if (
+      typeof pattern !== "string" ||
+      !pattern.trim() ||
+      pattern.length > MAX_EXCLUDE_PATTERN_LENGTH ||
+      pattern.includes("\0") ||
+      pattern.includes("\\") ||
+      path.posix.isAbsolute(pattern) ||
+      /^[a-zA-Z]:/.test(pattern)
+    ) {
+      throw new TypeError("Invalid source exclusion pattern.");
+    }
+    const segments = pattern.split("/");
+    if (
+      segments.some(
+        (segment) =>
+          !segment ||
+          segment === ".." ||
+          segment === "." ||
+          (segment.includes("**") && segment !== "**"),
+      )
+    )
+      throw new TypeError(
+        "Source exclusion patterns must stay relative and use ** as a complete path segment.",
+      );
+    if (/[\[\]{}!]/.test(pattern))
+      throw new TypeError(
+        "Source exclusion patterns support only *, **, and ? wildcards.",
+      );
+
+    return new Minimatch(pattern, {
+      dot: true,
+      nobrace: true,
+      nocomment: true,
+      noext: true,
+      nonegate: true,
+    });
+  });
 }
 
 function parseSource(source, filename) {
