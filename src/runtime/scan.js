@@ -1,5 +1,6 @@
 import { withBrowser, runPage } from "../browser/engine.js";
 import { compareSnapshots } from "../comparison/snapshots.js";
+import { compareVisualEvidence } from "../comparison/visual.js";
 import { validateConfig } from "../config/index.js";
 import { redactSensitiveText, sanitizeUrl } from "../utils/redact.js";
 
@@ -79,32 +80,106 @@ export async function scan(config, overrides = {}) {
         ? configuredRoute
         : configuredRoute.path;
     const route = redactSensitiveText(rawRoute);
-    if (!configuredRoute.snapshot) continue;
+    if (!configuredRoute.snapshot && !configuredRoute.visual) continue;
     const direct = results.find(
       (result) => result.scenario === "direct" && result.route === route,
     );
     const refresh = results.find(
       (result) => result.scenario === "refresh" && result.route === route,
     );
-    if (!direct?.snapshot || !refresh?.snapshot) continue;
-    const differences = compareSnapshots(direct.snapshot, refresh.snapshot);
-    if (!differences.length) continue;
-    const diagnostic = {
-      category: "navigation-dependent-rendering-inconsistency",
-      confidence: "observed",
-      severity: "error",
-      evidence: differences,
-      explanation:
-        "The configured DOM snapshot differed between direct navigation and refresh. This does not by itself prove a hydration mismatch or identify a root cause.",
-      reproduction: refresh.reproduction ?? direct.reproduction,
-    };
-    for (const result of [direct, refresh]) {
-      result.diagnostics ??= [];
-      result.diagnostics.push(diagnostic);
-      result.findings.push(
-        "Configured DOM snapshot differs between direct navigation and refresh; see diagnostic evidence.",
+    if (direct?.snapshot && refresh?.snapshot) {
+      const differences = compareSnapshots(direct.snapshot, refresh.snapshot);
+      if (differences.length) {
+        const diagnostic = {
+          category: "navigation-dependent-rendering-inconsistency",
+          confidence: "observed",
+          severity: "error",
+          evidence: differences,
+          explanation:
+            "The configured DOM snapshot differed between direct navigation and refresh. This does not by itself prove a hydration mismatch or identify a root cause.",
+          reproduction: refresh.reproduction ?? direct.reproduction,
+        };
+        for (const result of [direct, refresh]) {
+          result.diagnostics ??= [];
+          result.diagnostics.push(diagnostic);
+          result.findings.push(
+            "Configured DOM snapshot differs between direct navigation and refresh; see diagnostic evidence.",
+          );
+          result.passed = false;
+        }
+      }
+    }
+    if (configuredRoute.visual && direct && refresh) {
+      const maxDiffRatio = configuredRoute.visual.maxDiffRatio ?? 0;
+      const comparison = compareVisualEvidence(
+        direct.visualScreenshot,
+        refresh.visualScreenshot,
+        maxDiffRatio,
       );
-      result.passed = false;
+      if (!comparison) {
+        const captureNotes = [
+          direct.visualScreenshot?.captureNote,
+          refresh.visualScreenshot?.captureNote,
+        ].filter(Boolean);
+        const diagnostic = {
+          category: "visual-capture-incomplete",
+          confidence: "observed",
+          severity: "warning",
+          evidence: captureNotes,
+          explanation:
+            "The configured screenshots could not be compared. No visual pass or hydration conclusion can be drawn.",
+          reproduction: refresh.reproduction ?? direct.reproduction,
+        };
+        for (const result of [direct, refresh]) {
+          result.visualComparison = { complete: false, captureNotes };
+          result.diagnostics ??= [];
+          result.diagnostics.push(diagnostic);
+          result.findings.push(
+            "Configured visual comparison could not be completed; see diagnostics.",
+          );
+          result.passed = false;
+        }
+        continue;
+      }
+      const evidence = {
+        complete: true,
+        baselineScenario: "direct",
+        comparedScenario: "refresh",
+        ...comparison,
+      };
+      const diagnostic = {
+        category: "visual-rendering-difference",
+        confidence: "observed",
+        severity: comparison.passed ? "info" : "warning",
+        evidence: {
+          changedPixels: comparison.changedPixels,
+          totalPixels: comparison.totalPixels,
+          changedPixelRatio: comparison.changedPixelRatio,
+          maxDiffRatio,
+          width: comparison.width,
+          height: comparison.height,
+        },
+        explanation:
+          "Configured viewport pixels differed between direct load and refresh. Pixel differences are not proof of a hydration error.",
+        reproduction: refresh.reproduction ?? direct.reproduction,
+      };
+      for (const result of [direct, refresh]) {
+        result.visualComparison = evidence;
+        result.diagnostics ??= [];
+        result.diagnostics.push(diagnostic);
+        if (!comparison.passed) {
+          result.findings.push(
+            `Configured screenshot difference ratio ${comparison.changedPixelRatio} exceeded the ${maxDiffRatio} threshold.`,
+          );
+          result.passed = false;
+        }
+      }
+      if (comparison.diffImage) {
+        direct.visualDiff = {
+          mimeType: comparison.diffMimeType,
+          data: comparison.diffImage,
+        };
+      }
     }
   }
   return {

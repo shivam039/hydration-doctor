@@ -128,6 +128,40 @@ export function validateConfig(input) {
             });
           }
         }
+        if (route.visual !== undefined) {
+          if (
+            !route.visual ||
+            typeof route.visual !== "object" ||
+            Array.isArray(route.visual)
+          ) {
+            errors.push(`routes[${index}].visual must be an object.`);
+          } else {
+            if (
+              route.visual.maxDiffRatio !== undefined &&
+              (typeof route.visual.maxDiffRatio !== "number" ||
+                !Number.isFinite(route.visual.maxDiffRatio) ||
+                route.visual.maxDiffRatio < 0 ||
+                route.visual.maxDiffRatio > 1)
+            ) {
+              errors.push(
+                `routes[${index}].visual.maxDiffRatio must be from 0 to 1.`,
+              );
+            }
+            if (
+              route.visual.maskSelectors !== undefined &&
+              (!Array.isArray(route.visual.maskSelectors) ||
+                route.visual.maskSelectors.length > 20 ||
+                route.visual.maskSelectors.some(
+                  (selector) =>
+                    typeof selector !== "string" || !selector.trim(),
+                ))
+            ) {
+              errors.push(
+                `routes[${index}].visual.maskSelectors must contain at most 20 non-empty selectors.`,
+              );
+            }
+          }
+        }
         for (const key of [
           "expectedSelector",
           "expectedText",
@@ -176,6 +210,15 @@ export function validateConfig(input) {
         }
       }
     });
+  if (
+    Array.isArray(input.routes) &&
+    input.routes.filter(
+      (route) =>
+        route && typeof route === "object" && route.visual !== undefined,
+    ).length > 5
+  ) {
+    errors.push("At most 5 routes may capture visual evidence per scan.");
+  }
   if (
     input.navigation !== undefined &&
     (!input.navigation ||

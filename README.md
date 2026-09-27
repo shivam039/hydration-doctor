@@ -51,6 +51,7 @@ CLI values for browser, reporter, timeout, concurrency, and retries override con
   Interactions run on direct-load and refresh scenarios. A failed action or unmet step expectation fails that scenario. This does not inspect framework internals or model slow CPU/network conditions.
 
 - `snapshot`: optional `{ selector, compareText, attributes, ignoreSelectors }` checkpoint compared between direct load and refresh. Text and attributes are excluded by default; `ignoreSelectors` removes volatile subtrees. Snapshots are capped at 100 elements, 512 characters per captured value, five attributes, and 20 ignore selectors; reports identify truncated comparisons. A difference is reported as navigation-dependent rendering inconsistency, not as proof of hydration failure.
+- `visual`: optional route setting `{ maxDiffRatio, maskSelectors }` for captured-viewport PNG comparisons between direct load (baseline) and refresh. Animation is disabled during capture. Up to 20 dynamic selectors can be masked. At most five routes per scan capture images; viewports over two million pixels and images over 256 KiB are skipped and reported incomplete. Pixel differences are visual rendering differences, never hydration failures. The baseline is the direct-load image from the same run; persistent cross-release baseline management is not included yet.
 - `timeout`: per-operation milliseconds, 1–120000 (default 10000).
 - `concurrency`: number of independent scenarios to run at once, 1–8 (default 1).
 - `retries`: additional attempts for a scenario, 0–5 (default 0). A pass after a failure is still a failed, intermittent result.
@@ -63,7 +64,7 @@ CLI values for browser, reporter, timeout, concurrency, and retries override con
 
 Optional source candidates can be inspected separately with `npx hydration-doctor analyze --source ./src`. The analyzer reports JS/JSX browser-global reads, `Date.now()`/`Math.random()`, and `process.env` references with file/line/column. These are candidate patterns, not runtime errors or proof of a hydration failure. It skips common generated/dependency directories, caps input to 500 files of at most 1 MiB each, and never edits source files. See [static analysis details](docs/STATIC_ANALYSIS.md).
 
-Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML and JSON report files are created with owner-only permissions where the operating system supports them. Snapshot text/attributes and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
+Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML and JSON report files are created with owner-only permissions where the operating system supports them. Snapshots, configured screenshots, and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
 
 ## Guides
 

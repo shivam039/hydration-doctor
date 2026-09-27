@@ -113,6 +113,25 @@ test("rejects oversized route and snapshot configurations", () => {
       }),
     /at most 5 attributes/,
   );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: [{ path: "/", visual: { maxDiffRatio: 1.1 } }],
+      }),
+    /maxDiffRatio must be from 0 to 1/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: Array.from({ length: 6 }, (_, index) => ({
+          path: `/${index}`,
+          visual: {},
+        })),
+      }),
+    /At most 5 routes/,
+  );
 });
 
 test("parses CLI options and rejects missing option values", () => {

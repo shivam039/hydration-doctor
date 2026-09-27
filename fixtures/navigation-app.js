@@ -38,6 +38,24 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/missing-sidebar") {
+      const hits = (renderingHits.get(pathname) ?? 0) + 1;
+      renderingHits.set(pathname, hits);
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>${hits === 1 ? "<aside>Account navigation</aside>" : ""}<section><h1>Account content</h1></section></main></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/masked-visual") {
+      const hits = (renderingHits.get(pathname) ?? 0) + 1;
+      renderingHits.set(pathname, hits);
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><div id="volatile" style="width:300px;height:80px;background:#146e91;color:white">Dynamic label ${hits}</div><p>Stable content</p></main></body></html>`,
+      );
+      return;
+    }
     if (
       pathname === "/hydration-button-broken" ||
       pathname === "/hydration-button-gated"

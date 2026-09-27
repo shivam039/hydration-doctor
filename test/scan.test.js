@@ -13,6 +13,7 @@ import path from "node:path";
 import { scan } from "../src/runtime/scan.js";
 import { startNavigationFixture } from "../fixtures/navigation-app.js";
 import { main } from "../src/cli/index.js";
+import { formatHtmlReport } from "../src/reporters/html.js";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
@@ -415,6 +416,54 @@ test("compares configured DOM checkpoints without treating ignored dynamic regio
   ]);
   assert.equal(report.results[2].passed, true);
   assert.deepEqual(report.results[2].diagnostics, []);
+});
+
+test("captures bounded screenshots and a pixel diff without calling it a hydration failure", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/missing-sidebar",
+        expectedSelector: "main",
+        snapshot: { selector: "main", compareText: true },
+        visual: { maxDiffRatio: 0, maskSelectors: [] },
+      },
+      {
+        path: "/masked-visual",
+        expectedSelector: "main",
+        visual: { maxDiffRatio: 0, maskSelectors: ["#volatile"] },
+      },
+    ],
+  });
+  const direct = report.results[0];
+  const refresh = report.results[1];
+  assert.equal(direct.visualScreenshot.complete, true);
+  assert.equal(refresh.visualScreenshot.complete, true);
+  assert.ok(direct.visualScreenshot.byteLength < 256 * 1024);
+  assert.equal(direct.visualComparison.passed, false);
+  assert.ok(direct.visualComparison.changedPixelRatio > 0);
+  assert.ok(direct.visualDiff.data.length > 0);
+  assert.ok(
+    direct.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.category === "navigation-dependent-rendering-inconsistency",
+    ),
+  );
+  assert.ok(
+    direct.diagnostics.some(
+      (diagnostic) => diagnostic.category === "visual-rendering-difference",
+    ),
+  );
+  assert.doesNotMatch(JSON.stringify(direct.diagnostics), /hydration-error/);
+  const html = formatHtmlReport(report);
+  assert.match(html, /data:image\/png;base64,/);
+  assert.match(html, /Pixel differences highlighted in red/);
+  assert.equal(report.results[2].visualComparison.changedPixelRatio, 0);
+  assert.equal(report.results[2].passed, true);
 });
 
 test("scan CLI applies reporter overrides and returns the verified-failure exit code", async (t) => {

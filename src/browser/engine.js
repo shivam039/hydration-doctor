@@ -6,6 +6,7 @@ import {
   captureSnapshot,
   compareSnapshots,
 } from "../comparison/snapshots.js";
+import { captureVisualEvidence } from "../comparison/visual.js";
 import { redactSensitiveText, sanitizeUrl } from "../utils/redact.js";
 import {
   classifyRuntimeEvents,
@@ -222,6 +223,12 @@ export async function runPage(browser, url, config, scenario) {
         config,
         scenario,
         result,
+      );
+    }
+    if (scenario.name !== "client-navigation" && scenario.route.visual) {
+      result.visualScreenshot = await captureVisualEvidence(
+        page,
+        scenario.route.visual,
       );
     }
     const expectedUrl = scenario.route.expectedUrl
