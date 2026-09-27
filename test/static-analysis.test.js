@@ -80,3 +80,57 @@ test("analyze command returns candidate findings as JSON without failing the sca
   );
   assert.equal(report.findings[0].line, 1);
 });
+
+test("reports implicit current time and locale-formatting candidates only", async (t) => {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-time-locale-"),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "DatePatterns.jsx"),
+    [
+      "const current = new Date();",
+      'const label = new Date().toLocaleDateString("en-US");',
+      "const formatter = new Intl.DateTimeFormat();",
+      'const price = amount.toLocaleString("en-US");',
+      'const fixed = new Date("2020-01-01T00:00:00Z");',
+    ].join("\n"),
+  );
+
+  const report = await analyzeStaticSources(root);
+  assert.deepEqual(
+    report.findings.map(({ rule, line, confidence }) => ({
+      rule,
+      line,
+      confidence,
+    })),
+    [
+      {
+        rule: "nondeterministic-date-candidate",
+        line: 1,
+        confidence: "candidate",
+      },
+      {
+        rule: "locale-dependent-output-candidate",
+        line: 2,
+        confidence: "candidate",
+      },
+      {
+        rule: "nondeterministic-date-candidate",
+        line: 2,
+        confidence: "candidate",
+      },
+      {
+        rule: "locale-dependent-output-candidate",
+        line: 3,
+        confidence: "candidate",
+      },
+      {
+        rule: "locale-dependent-output-candidate",
+        line: 4,
+        confidence: "candidate",
+      },
+    ],
+  );
+  assert.doesNotMatch(JSON.stringify(report), /2020-01-01/);
+});

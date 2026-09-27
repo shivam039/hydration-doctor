@@ -107,21 +107,44 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
       }
     }
     visit(ast, (node) => {
-      if (node.type !== "MemberExpression") return;
-      const chain = memberChain(node);
       let rule;
       let evidence;
-      if (
-        /^(window|document|navigator|localStorage|sessionStorage)\./.test(chain)
+      if (node.type === "MemberExpression") {
+        const chain = memberChain(node);
+        if (
+          /^(window|document|navigator|localStorage|sessionStorage)\./.test(
+            chain,
+          )
+        ) {
+          rule = "browser-global-during-render-candidate";
+          evidence = chain.split(".")[0];
+        } else if (chain === "Date.now" || chain === "Math.random") {
+          rule = "nondeterministic-value-candidate";
+          evidence = chain;
+        } else if (/^process\.env(?:\.|$)/.test(chain)) {
+          rule = "environment-dependent-render-candidate";
+          evidence = "process.env";
+        } else if (chain === "Intl.DateTimeFormat") {
+          rule = "locale-dependent-output-candidate";
+          evidence = chain;
+        }
+      } else if (
+        node.type === "NewExpression" &&
+        node.callee.type === "Identifier" &&
+        node.callee.name === "Date" &&
+        node.arguments.length === 0
       ) {
-        rule = "browser-global-during-render-candidate";
-        evidence = chain.split(".")[0];
-      } else if (chain === "Date.now" || chain === "Math.random") {
-        rule = "nondeterministic-value-candidate";
-        evidence = chain;
-      } else if (/^process\.env(?:\.|$)/.test(chain)) {
-        rule = "environment-dependent-render-candidate";
-        evidence = "process.env";
+        rule = "nondeterministic-date-candidate";
+        evidence = "new Date()";
+      } else if (
+        node.type === "CallExpression" &&
+        node.callee.type === "MemberExpression" &&
+        ["toLocaleString", "toLocaleDateString", "toLocaleTimeString"].includes(
+          node.callee.property.name,
+        )
+      ) {
+        rule = "locale-dependent-output-candidate";
+        evidence = node.callee.property.name;
       }
       if (!rule) return;
       findings.push({

@@ -6,6 +6,8 @@ The analyzer currently reports these candidates:
 
 - Browser-global member access rooted at `window`, `document`, `navigator`, `localStorage`, or `sessionStorage`.
 - Calls/references to `Date.now` or `Math.random`.
+- Zero-argument `new Date()` construction.
+- `Intl.DateTimeFormat` and calls to `toLocaleString`, `toLocaleDateString`, or `toLocaleTimeString`.
 - References rooted at `process.env`.
 
 Each finding includes a relative file path and one-based line/column. Parser failures are reported separately and skipped. The default exclusions are `.git`, `.next`, `build`, `coverage`, `dist`, and `node_modules`; symbolic links are skipped. Analysis is bounded to 500 files and 1 MiB per file.

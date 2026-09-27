@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.5.0
 
-**Status:** Planned  
+**Status:** Implementation in progress
 **Iteration:** 3 of 5  
 **Audience:** JavaScript/JSX application developers reviewing possible server/client render differences
 
@@ -28,7 +28,7 @@ Extend bounded JS/JSX analysis to identify zero-argument `Date` construction and
 
 ## Issue
 
-- **HD-NR-6:** current-time and locale-sensitive static candidates — tracked as a GitHub issue during iteration 3.
+- **HD-NR-6:** current-time and locale-sensitive static candidates — [issue #27](https://github.com/shivam039/hydration-doctor/issues/27).
 
 ## Verification
 
