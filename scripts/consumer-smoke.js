@@ -67,6 +67,22 @@ try {
     "cli",
     "index.js",
   );
+  const installedBinPath = path.join(
+    consumerDirectory,
+    "node_modules",
+    ".bin",
+    "hydration-doctor",
+  );
+  const { stdout: versionOutput } = await execFileAsync(
+    process.execPath,
+    [installedBinPath, "--version"],
+    { cwd: temporaryDirectory, encoding: "utf8", timeout: 10_000 },
+  );
+  if (versionOutput.trim() !== version) {
+    throw new Error(
+      `Installed hydration-doctor executable reported unexpected version: ${versionOutput}`,
+    );
+  }
   const { stdout: output } = await execFileAsync(
     process.execPath,
     [cliPath, "scan", "--config", configPath],

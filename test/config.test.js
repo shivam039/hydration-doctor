@@ -455,7 +455,10 @@ test("help and version commands are executable", async () => {
   assert.match(logs[0], /Usage:/);
   assert.match(logs[0], /analyze --source <directory>.*--format json\|sarif/);
   assert.equal(await main(["--version"], io), 0);
-  assert.equal(logs[1], "0.1.0");
+  const { version } = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8"),
+  );
+  assert.equal(logs[1], version);
 });
 
 test("init creates a private config and refuses to overwrite existing content", async (t) => {

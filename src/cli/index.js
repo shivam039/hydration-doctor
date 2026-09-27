@@ -2,7 +2,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { loadConfig, validateConfig } from "../config/index.js";
 import { scan } from "../runtime/scan.js";
 import { withBrowser } from "../browser/engine.js";
@@ -16,7 +16,9 @@ import {
 import { redactSensitiveText } from "../utils/redact.js";
 import { analyzeStaticSources } from "../analysis/static.js";
 
-const VERSION = "0.1.0";
+const { version: VERSION } = JSON.parse(
+  readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
+);
 
 export function parseArgs(args) {
   const parsed = { positional: [] };
