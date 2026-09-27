@@ -101,6 +101,61 @@ test("reports browser-global typeof guards without matching strings or comments"
   assert.doesNotMatch(JSON.stringify(report), /hasProcess|typeof window/);
 });
 
+test("suppresses only exact static rules on the annotated line", async (t) => {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-suppressions-"),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "App.jsx"),
+    [
+      "window.privateBrowserValue; // hydration-doctor-ignore browser-global-during-render-candidate",
+      "const adjacent = window.nextLineValue;",
+      "// hydration-doctor-ignore-next-line nondeterministic-value-candidate, locale-dependent-output-candidate",
+      "const label = Math.random() + new Intl.DateTimeFormat();",
+      "// hydration-doctor-ignore *",
+      "const stable = Date.now();",
+      "// hydration-doctor-ignore unknown-rule",
+      "const visible = window.visibleValue;",
+      'const text = "hydration-doctor-ignore browser-global-during-render-candidate";',
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(root, "Widget.tsx"),
+    [
+      "// hydration-doctor-ignore-next-line browser-global-during-render-candidate",
+      "export const Widget = () => <span>{navigator.language}</span>;",
+    ].join("\n"),
+  );
+  const report = await analyzeStaticSources(root);
+  assert.deepEqual(
+    report.findings.map(({ file, line, rule }) => ({ file, line, rule })),
+    [
+      {
+        file: "App.jsx",
+        line: 2,
+        rule: "browser-global-during-render-candidate",
+      },
+      {
+        file: "App.jsx",
+        line: 6,
+        rule: "nondeterministic-value-candidate",
+      },
+      {
+        file: "App.jsx",
+        line: 8,
+        rule: "browser-global-during-render-candidate",
+      },
+    ],
+  );
+  assert.equal(report.suppressedFindings, 4);
+  assert.equal(report.parseErrors.length, 0);
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /privateBrowserValue|visibleValue|navigator\.language|unknown-rule/,
+  );
+});
+
 test("analyzes TypeScript and TSX syntax without flagging type annotations as parse errors", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-ts-"));
   t.after(() => rm(root, { recursive: true, force: true }));

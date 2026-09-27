@@ -97,6 +97,7 @@ test("JUnit marks all scenarios skipped when scan status is inconclusive", () =>
 test("SARIF output is deterministic, advisory, and contains safe relative locations", () => {
   const sarif = formatSarifReport({
     filesScanned: 2,
+    suppressedFindings: 3,
     findings: [
       {
         rule: "browser-global-during-render-candidate",
@@ -106,6 +107,13 @@ test("SARIF output is deterministic, advisory, and contains safe relative locati
         column: 7,
         evidence: "password=must-not-appear",
         explanation: "<script>untrusted</script>",
+      },
+      {
+        rule: "browser-environment-branch-candidate",
+        severity: "info",
+        file: "src/guard.ts",
+        line: 3,
+        column: 5,
       },
       {
         rule: "unknown-rule-from-input",
@@ -138,6 +146,7 @@ test("SARIF output is deterministic, advisory, and contains safe relative locati
     sarif.runs[0].results.map(({ ruleId, level }) => ({ ruleId, level })),
     [
       { ruleId: "browser-global-during-render-candidate", level: "note" },
+      { ruleId: "browser-environment-branch-candidate", level: "note" },
       { ruleId: "unknown-static-candidate", level: "note" },
       { ruleId: "nondeterministic-value-candidate", level: "note" },
       { ruleId: "source-parse-error", level: "warning" },
@@ -147,8 +156,8 @@ test("SARIF output is deterministic, advisory, and contains safe relative locati
     artifactLocation: { uri: "src/components/User%20Card.tsx" },
     region: { startLine: 4, startColumn: 7 },
   });
-  assert.equal("locations" in sarif.runs[0].results[1], false);
   assert.equal("locations" in sarif.runs[0].results[2], false);
+  assert.equal("locations" in sarif.runs[0].results[3], false);
   assert.doesNotMatch(
     JSON.stringify(sarif),
     /must-not-appear|<script>|secret\.ts/,
@@ -156,5 +165,6 @@ test("SARIF output is deterministic, advisory, and contains safe relative locati
   assert.deepEqual(sarif.runs[0].properties, {
     filesScanned: 2,
     parseErrorCount: 1,
+    suppressedFindings: 3,
   });
 });
