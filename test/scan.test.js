@@ -330,6 +330,54 @@ test("fills and submits a form without copying entered values into evidence", as
   assert.doesNotMatch(JSON.stringify(report), /Ada/);
 });
 
+test("selects options and checks or unchecks controls without exposing values", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const privateOption = "hydration-private-option";
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/form-controls",
+        readySelector: "#ready",
+        interactions: [
+          {
+            type: "select",
+            selector: "#plan",
+            value: privateOption,
+            checkpoint: "ready",
+            expect: { value: privateOption },
+          },
+          {
+            type: "check",
+            selector: "#alerts",
+            checkpoint: "ready",
+            expect: { checked: true },
+          },
+          {
+            type: "uncheck",
+            selector: "#updates",
+            checkpoint: "ready",
+            expect: { checked: false },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "select", passed: true },
+    { index: 2, type: "check", passed: true },
+    { index: 3, type: "uncheck", passed: true },
+  ]);
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /hydration-private-option|#alerts|#updates/,
+  );
+});
+
 test("presses a key at the requested checkpoint and classifies a broken outcome", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());
