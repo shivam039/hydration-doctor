@@ -401,6 +401,50 @@ test("fails client-navigation scenario when a click loads a new document", async
   assert.match(report.results[2].findings[0], /new document request/);
 });
 
+test("compares client-navigation snapshots with direct target output", async (t) => {
+  for (const [clientMode, expectedPassed] of [
+    ["spa", true],
+    ["spa-broken", false],
+  ]) {
+    const { server, baseUrl } = await startNavigationFixture({ clientMode });
+    t.after(() => server.close());
+    const report = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 3000,
+      navigation: { from: "/", click: 'a[href="/client"]', to: "/client" },
+      routes: [
+        {
+          path: "/client",
+          expectedSelector: "main",
+          snapshot: { selector: "main", compareText: true },
+        },
+      ],
+    });
+    const direct = report.results[0];
+    const client = report.results[2];
+    assert.equal(direct.passed, expectedPassed);
+    assert.equal(client.passed, expectedPassed);
+    const diagnostic = client.diagnostics.find(
+      (item) => item.category === "client-navigation-rendering-inconsistency",
+    );
+    assert.equal(Boolean(diagnostic), !expectedPassed);
+    if (diagnostic) {
+      assert.deepEqual(diagnostic.evidence[0], {
+        kind: "text",
+        path: "0.0",
+        before: "Client view",
+        after: "Stale client view",
+      });
+      assert.equal(diagnostic.reproduction.scenario, "client-navigation");
+      assert.match(
+        diagnostic.explanation,
+        /does not by itself prove a hydration mismatch/,
+      );
+    }
+  }
+});
+
 test("accepts configured redirect URLs and preserves query and hash", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());

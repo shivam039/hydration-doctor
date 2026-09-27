@@ -225,7 +225,7 @@ export async function startNavigationFixture({
     }
     response.writeHead(200, { "content-type": "text/html" });
     response.end(
-      `<html><body><main><a href="/client">Client route</a><h1>Healthy</h1></main>${clientMode === "spa" ? `<script>document.querySelector('a').addEventListener('click', (event) => { event.preventDefault(); history.pushState({}, '', '/client'); document.querySelector('main').innerHTML = '<h1>Client view</h1>'; });</script>` : ""}</body></html>`,
+      `<html><body><main><a href="/client">Client route</a><h1>Healthy</h1></main>${clientMode.startsWith("spa") ? `<script>document.querySelector('a').addEventListener('click', (event) => { event.preventDefault(); history.pushState({}, '', '/client'); document.querySelector('main').innerHTML = '${clientMode === "spa-broken" ? "<h1>Stale client view</h1>" : "<h1>Client view</h1>"}'; });</script>` : ""}</body></html>`,
     );
   });
   server.listen(0, "127.0.0.1");

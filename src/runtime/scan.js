@@ -139,6 +139,35 @@ export async function scan(config, overrides = {}) {
         }
       }
     }
+    const clientNavigation = results.find(
+      (result) =>
+        result.scenario === "client-navigation" && result.route === route,
+    );
+    if (direct?.snapshot && clientNavigation?.snapshot) {
+      const differences = compareSnapshots(
+        direct.snapshot,
+        clientNavigation.snapshot,
+      );
+      if (differences.length) {
+        const diagnostic = {
+          category: "client-navigation-rendering-inconsistency",
+          confidence: "observed",
+          severity: "error",
+          evidence: differences,
+          explanation:
+            "The configured DOM snapshot differed between direct navigation and client-side navigation. This does not by itself prove a hydration mismatch or identify a root cause.",
+          reproduction: clientNavigation.reproduction ?? direct.reproduction,
+        };
+        for (const result of [direct, clientNavigation]) {
+          result.diagnostics ??= [];
+          result.diagnostics.push(diagnostic);
+          result.findings.push(
+            "Configured DOM snapshot differs between direct load and client navigation; see diagnostic evidence.",
+          );
+          result.passed = false;
+        }
+      }
+    }
     if (configuredRoute.visual && direct && refresh) {
       const maxDiffRatio = configuredRoute.visual.maxDiffRatio ?? 0;
       const comparison = compareVisualEvidence(
