@@ -167,6 +167,46 @@ test("analyze CLI accepts comma-separated source exclusions", async (t) => {
   );
 });
 
+test("analyze CLI can emit SARIF and rejects unknown formats", async (t) => {
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-analyze-sarif-"),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "App.ts"),
+    "export const locale = navigator.language;\n",
+  );
+  let output = "";
+  const exitCode = await main(
+    ["analyze", "--source", root, "--format", "sarif"],
+    {
+      log(value) {
+        output = value;
+      },
+      error(value) {
+        throw new Error(value);
+      },
+    },
+  );
+  assert.equal(exitCode, 0);
+  const report = JSON.parse(output);
+  assert.equal(report.version, "2.1.0");
+  assert.equal(
+    report.runs[0].results[0].ruleId,
+    "browser-global-during-render-candidate",
+  );
+  assert.equal(
+    await main(["analyze", "--source", root, "--format", "html"], {
+      log() {},
+      error(message) {
+        output = message;
+      },
+    }),
+    2,
+  );
+  assert.match(output, /must be json or sarif/);
+});
+
 test("reports implicit current time and locale-formatting candidates only", async (t) => {
   const root = await mkdtemp(
     path.join(tmpdir(), "hydration-doctor-time-locale-"),

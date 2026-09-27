@@ -311,6 +311,7 @@ test("help and version commands are executable", async () => {
   };
   assert.equal(await main(["--help"], io), 0);
   assert.match(logs[0], /Usage:/);
+  assert.match(logs[0], /analyze --source <directory>.*--format json\|sarif/);
   assert.equal(await main(["--version"], io), 0);
   assert.equal(logs[1], "0.1.0");
 });

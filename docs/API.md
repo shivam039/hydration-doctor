@@ -3,12 +3,12 @@
 The package exports the following entry points from `hydration-doctor`:
 
 - `scan(config, overrides?)` validates the config, runs configured browser scenarios, and returns the JSON report object. Pass an `AbortSignal` as `overrides.signal` to cancel; the promise rejects with the signal's reason and does not return a partial report.
-- `analyzeStaticSources(directory, options?)` parses bounded JS/JSX files and returns source-pattern candidates without changing files.
+- `analyzeStaticSources(directory, options?)` parses bounded JS/JSX and TypeScript/TSX files and returns source-pattern candidates without changing files. `options.excludePatterns` accepts bounded relative source globs.
 - `defineConfig(config)` is an identity helper for typed/config-editor-friendly config files.
 - `loadConfig(path)` loads and validates a trusted JavaScript config module.
 - `validateConfig(config)` validates and normalizes configuration or throws an error.
 - `createReactDiagnosticsAdapter({ onRecoverableError })` formats React's public recoverable-error callback for an application-owned handler. It does not connect to the CLI automatically.
-- `formatTerminalReport(report)`, `formatJsonReport(report)`, `formatHtmlReport(report)`, and `formatJUnitReport(report)` format a report object.
+- `formatTerminalReport(report)`, `formatJsonReport(report)`, `formatHtmlReport(report)`, `formatJUnitReport(report)`, and `formatSarifReport(report)` format report objects. SARIF output is intended for static-analysis candidates and parse errors.
 - `DoctorError` and `getExitCode(error)` are helpers for callers building integrations around CLI-style results.
 - `redactSensitiveText(text)` and `sanitizeUrl(url)` provide the package's conservative redaction helpers.
 

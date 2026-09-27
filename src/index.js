@@ -7,6 +7,7 @@ export { redactSensitiveText, sanitizeUrl } from "./utils/redact.js";
 export {
   formatHtmlReport,
   formatJUnitReport,
+  formatSarifReport,
   formatJsonReport,
   formatTerminalReport,
 } from "./reporters/index.js";

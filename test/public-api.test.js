@@ -8,6 +8,7 @@ import {
   getExitCode,
   formatJsonReport,
   formatJUnitReport,
+  formatSarifReport,
   redactSensitiveText,
   sanitizeUrl,
 } from "../src/index.js";
@@ -23,6 +24,7 @@ test("pins documented package and config entry-point exports", () => {
     "formatTerminalReport",
     "formatJsonReport",
     "formatJUnitReport",
+    "formatSarifReport",
     "formatHtmlReport",
     "DoctorError",
     "getExitCode",
@@ -36,6 +38,7 @@ test("pins documented package and config entry-point exports", () => {
     "loadConfig",
     "validateConfig",
   ]);
+  assert.equal(typeof formatSarifReport, "function");
 });
 
 test("React adapter exposes the documented recoverable-error hook", () => {
