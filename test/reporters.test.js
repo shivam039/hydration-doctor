@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { formatHtmlReport } from "../src/reporters/html.js";
 import { formatJUnitReport } from "../src/reporters/junit.js";
+import { formatSarifReport } from "../src/reporters/sarif.js";
 
 test("HTML reports escape untrusted scenario and diagnostic content", () => {
   const html = formatHtmlReport({
@@ -91,4 +92,69 @@ test("JUnit marks all scenarios skipped when scan status is inconclusive", () =>
   });
   assert.match(xml, /tests="1" failures="0" skipped="1"/);
   assert.match(xml, /<skipped message="scan inconclusive">/);
+});
+
+test("SARIF output is deterministic, advisory, and contains safe relative locations", () => {
+  const sarif = formatSarifReport({
+    filesScanned: 2,
+    findings: [
+      {
+        rule: "browser-global-during-render-candidate",
+        severity: "info",
+        file: "src/components/User Card.tsx",
+        line: 4,
+        column: 7,
+        evidence: "password=must-not-appear",
+        explanation: "<script>untrusted</script>",
+      },
+      {
+        rule: "unknown-rule-from-input",
+        file: "../../secret.ts",
+        line: 1,
+        column: 1,
+      },
+      {
+        rule: "nondeterministic-value-candidate",
+        file: "\uD800.ts",
+        line: 1,
+      },
+    ],
+    parseErrors: [
+      {
+        file: "src/broken.ts",
+        line: 9,
+        column: 2,
+        message: "token=must-not-appear",
+      },
+    ],
+  });
+  assert.equal(sarif.version, "2.1.0");
+  assert.equal(
+    sarif.$schema,
+    "https://docs.oasis-open.org/sarif/sarif/v2.1.0/os/schemas/sarif-schema-2.1.0.json",
+  );
+  assert.equal(sarif.runs[0].tool.driver.name, "Hydration Doctor");
+  assert.deepEqual(
+    sarif.runs[0].results.map(({ ruleId, level }) => ({ ruleId, level })),
+    [
+      { ruleId: "browser-global-during-render-candidate", level: "note" },
+      { ruleId: "unknown-static-candidate", level: "note" },
+      { ruleId: "nondeterministic-value-candidate", level: "note" },
+      { ruleId: "source-parse-error", level: "warning" },
+    ],
+  );
+  assert.deepEqual(sarif.runs[0].results[0].locations[0].physicalLocation, {
+    artifactLocation: { uri: "src/components/User%20Card.tsx" },
+    region: { startLine: 4, startColumn: 7 },
+  });
+  assert.equal("locations" in sarif.runs[0].results[1], false);
+  assert.equal("locations" in sarif.runs[0].results[2], false);
+  assert.doesNotMatch(
+    JSON.stringify(sarif),
+    /must-not-appear|<script>|secret\.ts/,
+  );
+  assert.deepEqual(sarif.runs[0].properties, {
+    filesScanned: 2,
+    parseErrorCount: 1,
+  });
 });

@@ -11,6 +11,7 @@ import {
   formatJUnitReport,
   formatJsonReport,
   formatTerminalReport,
+  formatSarifReport,
 } from "../reporters/index.js";
 import { redactSensitiveText } from "../utils/redact.js";
 import { analyzeStaticSources } from "../analysis/static.js";
@@ -47,7 +48,12 @@ export async function main(args = process.argv.slice(2), io = console) {
   try {
     const options = parseArgs(args);
     if (options.help || args.length === 0) {
-      io.log(helpText);
+      io.log(
+        helpText.replace(
+          "hydration-doctor analyze --source <directory> [--output <json-path>]",
+          "hydration-doctor analyze --source <directory> [--exclude <glob[,glob...]>] [--format json|sarif] [--output <path>]",
+        ),
+      );
       return 0;
     }
     if (options.version) {
@@ -87,7 +93,7 @@ function assertKnownOptions(command, options) {
       "updateBaselines",
       "viewport",
     ]),
-    analyze: new Set(["source", "output", "exclude"]),
+    analyze: new Set(["source", "output", "exclude", "format"]),
   }[command];
   const unknown = Object.keys(options).filter(
     (key) => key !== "positional" && !allowed?.has(key),
@@ -100,12 +106,19 @@ function assertKnownOptions(command, options) {
 
 async function analyzeCommand(options, io) {
   if (!options.source) throw new Error("analyze needs --source <directory>.");
+  const format = options.format ?? "json";
+  if (!new Set(["json", "sarif"]).has(format))
+    throw new Error("analyze --format must be json or sarif.");
   const report = await analyzeStaticSources(options.source, {
     excludePatterns: options.exclude
       ? options.exclude.split(",").map((pattern) => pattern.trim())
       : [],
   });
-  const output = `${JSON.stringify(report, null, 2)}\n`;
+  const output = `${JSON.stringify(
+    format === "sarif" ? formatSarifReport(report) : report,
+    null,
+    2,
+  )}\n`;
   if (options.output) {
     await writeFile(options.output, output, { flag: "wx", mode: 0o600 });
     io.log(`Static analysis report written to ${options.output}.`);
