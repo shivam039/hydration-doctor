@@ -17,6 +17,86 @@ import { formatHtmlReport } from "../src/reporters/html.js";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
+function trackAbortListeners(signal) {
+  const counts = { added: 0, removed: 0 };
+  const add = signal.addEventListener.bind(signal);
+  const remove = signal.removeEventListener.bind(signal);
+  signal.addEventListener = (type, ...args) => {
+    if (type === "abort") counts.added += 1;
+    return add(type, ...args);
+  };
+  signal.removeEventListener = (type, ...args) => {
+    if (type === "abort") counts.removed += 1;
+    return remove(type, ...args);
+  };
+  return counts;
+}
+
+test("rejects an already-aborted scan with the caller's exact reason", async () => {
+  const controller = new AbortController();
+  const reason = new Error("caller cancelled scan");
+  controller.abort(reason);
+  await assert.rejects(
+    scan(
+      { baseUrl: "http://localhost", routes: ["/"] },
+      { signal: controller.signal },
+    ),
+    (error) => error === reason,
+  );
+});
+
+test("aborting during concurrent readiness waits rejects promptly and cleans up", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const controller = new AbortController();
+  const listeners = trackAbortListeners(controller.signal);
+  const reason = new Error("stop this scan");
+  const startedAt = Date.now();
+  const scanPromise = scan(
+    {
+      baseUrl,
+      browser: "chromium",
+      timeout: 60000,
+      concurrency: 2,
+      routes: [
+        { path: "/", expectedSelector: "#never-appears" },
+        { path: "/client", expectedSelector: "#also-never-appears" },
+      ],
+    },
+    { signal: controller.signal },
+  );
+  const timer = setTimeout(() => controller.abort(reason), 300);
+  try {
+    await assert.rejects(scanPromise, (error) => error === reason);
+    assert.ok(Date.now() - startedAt < 5000, "abort should stop the 60s waits");
+    assert.ok(listeners.added > 0);
+    assert.equal(listeners.removed, listeners.added);
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+test("removes AbortSignal listeners after a successful scan", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const controller = new AbortController();
+  const listeners = trackAbortListeners(controller.signal);
+  const report = await scan(
+    { baseUrl, browser: "chromium", routes: ["/"] },
+    { signal: controller.signal },
+  );
+  assert.equal(report.status, "passed");
+  assert.ok(listeners.added > 0);
+  assert.equal(listeners.removed, listeners.added);
+});
+
+test("rejects values that are not AbortSignal instances", async () => {
+  await assert.rejects(
+    scan({ baseUrl: "http://localhost", routes: ["/"] }, { signal: {} }),
+    /overrides.signal must be an AbortSignal/,
+  );
+});
+
 test("checks direct navigation and refresh and detects missing expected UI", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());
