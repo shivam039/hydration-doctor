@@ -49,6 +49,18 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/auth-protected") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>Loading account</main><script>if(localStorage.getItem('hd-auth-state')==='authenticated-fixture-state'){document.querySelector('main').textContent='Account dashboard'}else{location.replace('/auth-sign-in')}</script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/auth-sign-in") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end("<html><body><main>Sign in required</main></body></html>");
+      return;
+    }
     if (pathname === "/missing-sidebar") {
       const hits = (renderingHits.get(pathname) ?? 0) + 1;
       renderingHits.set(pathname, hits);

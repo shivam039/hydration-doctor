@@ -14,7 +14,7 @@
 - Next.js 15.5.26 App and Pages Router fixtures now pass both development and production direct-load/refresh scans. Advanced routing/rendering behaviors remain unverified.
 - Visual comparison supports opt-in persistent PNG baselines with explicit update mode and path/symlink checks. A desktop/mobile fixture matrix remains unimplemented.
 - AST analysis currently covers only documented JS/JSX candidate patterns; it does not understand TypeScript, execution timing, or a complete set of hydration hazards.
-- Continuous fixture coverage now includes a browser-local-storage restoration regression; it does not yet cover all capabilities named in the master epic, including streaming, delayed imports, authentication-dependent state, and broader state races.
+- Continuous fixture coverage includes local-storage restoration regression and deterministic anonymous/authenticated browser-state checks. Real identity providers, streaming, delayed imports, and broader state races remain unverified.
 - Public APIs and configuration remain pre-1.0 and are not promised stable. No migration guarantees have been established.
 
 Run `npm run check` and `npm run test:consumer` for local reproducible checks. A passing matrix validates the current supported foundation; it does not clear the blockers above. Package publication remains a separate explicit release decision.

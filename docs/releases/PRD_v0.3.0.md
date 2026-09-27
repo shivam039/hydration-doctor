@@ -29,7 +29,7 @@ Add deterministic evidence for an authentication-dependent route using Playwrigh
 
 ## Issue
 
-- **HD-NR-4:** authenticated state and expected redirect fixture — tracked as a GitHub issue during iteration 1.
+- **HD-NR-4:** authenticated state and expected redirect fixture — [issue #25](https://github.com/shivam039/hydration-doctor/issues/25).
 
 ## Verification
 

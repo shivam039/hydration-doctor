@@ -20,6 +20,10 @@ Configure a narrow snapshot selector, exclude volatile text/attributes where pos
 
 Confirm that `expectedSelector`, `expectedText`, or `readySelector` describes the intended user-visible state. Assertions are application-specific; an empty state can pass when configured as the expected text. Failure reports intentionally omit configured expected text from assertion error messages.
 
+## An authenticated route redirects unexpectedly
+
+Set a Playwright `storageState` path or object for the intended test account, then configure the route's expected content and `expectedUrl` for any deliberate anonymous redirect. Keep state files out of version control and use disposable test credentials. Hydration Doctor does not record storage values in findings or reports. The `/auth-protected` fixture demonstrates a local expected sign-in redirect and authenticated direct-load/refresh, but it does not verify an external identity provider.
+
 ## Interpret the category before investigating
 
 Use [report guidance](REPORTS.md) to distinguish confirmed browser hydration warnings from runtime, network, redirect, loading, and expected-UI findings. A generic console error is not classified as a hydration error.
