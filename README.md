@@ -1,5 +1,9 @@
 # Hydration Doctor
 
+> **Experimental, pre-1.0 software.** The public API and configuration may change between releases. Breaking changes can occur without migration guarantees. This project is not yet recommended for production-critical adoption. No npm release is implied by the repository roadmap or version metadata.
+
+See the [changelog](CHANGELOG.md) for repository increments and the [release process](docs/RELEASING.md) for publication requirements.
+
 Hydration Doctor is an open-source CLI for checking route behavior across direct navigation, hard refresh, and configured client-side navigation. It is an early implementation: Phase 1 checks navigation and expected UI. It does not yet prove an arbitrary DOM difference is a hydration mismatch.
 
 ## Quick start

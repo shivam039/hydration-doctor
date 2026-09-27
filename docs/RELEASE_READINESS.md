@@ -1,6 +1,6 @@
 # Release readiness assessment
 
-**Status: not ready for a stable 1.0 release.** This project is at version 0.1.0; no npm release has been published.
+**Status: not ready for a stable 1.0 release.** The repository development version is 0.23.0; repository version metadata does not indicate npm publication.
 
 ## Verified foundation
 
@@ -14,6 +14,7 @@
 - The pinned Next.js 15.5.26 production App Router fixture verifies a `<Link>` transition, target readiness, and browser back/forward behavior.
 - CI runs the full suite on Node.js 20, 22, and 24 with Chromium and targeted healthy/missing-UI smoke checks on Chromium, Firefox, and WebKit with Playwright 1.63.0. The non-Chromium checks remain smoke coverage only.
 - Security limits and residual findings are recorded in the [adversarial review](security/ADVERSARIAL_REVIEW_2026-09-27.md). The [master epic roadmap](roadmap/MASTER_EPIC.md) records remaining scope.
+- Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and [release process](RELEASING.md); no publication is claimed here.
 
 ## Release blockers
 
