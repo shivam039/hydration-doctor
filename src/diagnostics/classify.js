@@ -60,6 +60,12 @@ export function classifyScenarioFindings(messages, reproduction) {
       category = "loading-readiness-failure";
     else if (/selector .* failed|expected-text assertion failed/i.test(message))
       category = "missing-expected-ui";
+    else if (
+      /Configured (click|fill|submit) interaction step \d+ failed/i.test(
+        message,
+      )
+    )
+      category = "interaction-outcome-failure";
     else if (/HTTP \d+|request failed/i.test(message))
       category = "failed-network-dependency";
     if (!category) return [];

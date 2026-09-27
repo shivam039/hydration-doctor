@@ -36,7 +36,7 @@ CLI values for browser, viewport, reporter, timeout, concurrency, and retries ov
 - `navigation`: optional `{ from, click, to }` to check the configured target route through a click from the entry route.
 - `expectedUrl`: optional final URL for routes that intentionally redirect. Without it, a changed final URL is reported as an unexpected redirect.
 - `readySelector`: optional application-owned selector to wait for before evaluating the expected UI. This is useful when a page exposes an explicit hydration-complete marker.
-- `interactions`: optional ordered route steps for `click`, `fill`, or `submit`. Each step requires a CSS `selector`; `fill` also requires a string `value`. Set `checkpoint: "ready"` to wait for the route's `readySelector` before acting, or omit it to act immediately after DOM content loads. A step can assert `expect: { selector, text, url }`. Reports include only the step number, action type, and pass status; selectors and entered values are omitted. For example:
+- `interactions`: optional ordered route steps for `click`, `fill`, or `submit`. Each step requires a CSS `selector`; `fill` also requires a string `value`. Set `checkpoint: "ready"` to wait for the route's `readySelector` before acting, or omit it to act immediately after DOM content loads. A fill step can assert `expect: { value }`; Hydration Doctor waits for the route's `readySelector` first when configured, then verifies the value. This detects inputs reset during hydration. Reports include only the step number, action type, and pass status; selectors and entered/expected values are omitted. For example:
 
   ```js
   {

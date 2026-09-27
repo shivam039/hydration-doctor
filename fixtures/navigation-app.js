@@ -97,6 +97,17 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (
+      pathname === "/hydration-input-reset" ||
+      pathname === "/hydration-input-gated"
+    ) {
+      const gated = pathname.endsWith("gated");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><label>Display name <input id="profile" ${gated ? "disabled" : ""}></label></main><script>setTimeout(()=>{const field=document.querySelector('#profile');${gated ? "field.disabled=false;" : "field.value='';"}document.documentElement.dataset.hydrated='true'},350)</script></body></html>`,
+      );
+      return;
+    }
     if (pathname === "/hydration-form") {
       response.writeHead(200, { "content-type": "text/html" });
       response.end(

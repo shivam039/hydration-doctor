@@ -367,6 +367,30 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
           timeout,
         );
       }
+      if (interaction.expect?.value !== undefined) {
+        if (route.readySelector) {
+          await page
+            .locator(route.readySelector)
+            .first()
+            .waitFor({ state: "visible", timeout });
+        }
+        await page.waitForFunction(
+          ({ selector, value }) => {
+            const element = document.querySelector(selector);
+            return (
+              (element instanceof HTMLInputElement ||
+                element instanceof HTMLTextAreaElement ||
+                element instanceof HTMLSelectElement) &&
+              element.value === value
+            );
+          },
+          {
+            selector: interaction.selector,
+            value: interaction.expect.value,
+          },
+          { timeout },
+        );
+      }
       if (interaction.expect?.url) {
         const expectedUrl = new URL(interaction.expect.url, baseUrl).href;
         await page.waitForURL((candidate) => candidate.href === expectedUrl, {

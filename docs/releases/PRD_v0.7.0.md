@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.7.0
 
-**Status:** Implementation in progress
+**Status:** Implementation complete, GitHub Actions pending
 **Iteration:** 5 of 5  
 **Audience:** Developers testing forms and controls during hydration
 
@@ -30,7 +30,7 @@ Add a value assertion for configured fill interactions, preserve value redaction
 
 ## Issue
 
-- **HD-NR-8:** detect values reset during hydration without exposing input contents — tracked as a GitHub issue during iteration 5.
+- **HD-NR-8:** detect values reset during hydration without exposing input contents — [issue #29](https://github.com/shivam039/hydration-doctor/issues/29).
 
 ## Verification
 

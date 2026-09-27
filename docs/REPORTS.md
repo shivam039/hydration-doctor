@@ -10,6 +10,7 @@ Interpretation guidance:
 - `navigation-dependent-rendering-inconsistency` and SSR/client snapshot differences mean configured outputs differed. A difference alone does not prove a hydration failure.
 - `visual-rendering-difference` reports a bounded pixel comparison between a direct-load screenshot and the same route after refresh. `visual-capture-incomplete` means the requested image could not be compared. Neither category is a hydration diagnosis. HTML reports embed the captured PNGs and diff when available.
 - Configuring `routes[].visual.baseline` adds cross-run evidence in `visualBaseline`. Status is `matched`, `different`, `missing`, `invalid`, `inconclusive`, or `updated`. A missing baseline makes the scan inconclusive; a changed baseline is a visual finding, not proof of hydration failure. HTML reports attach the bounded diff image when available.
+- Failed fill-value assertions are reported as `interaction-outcome-failure`. The report identifies the scenario and step without including the entered or expected value; the finding alone does not establish hydration as the cause.
 - `browser-console-error`, `browser-runtime-exception`, `failed-network-request`, `failed-network-dependency`, `unexpected-redirect`, `loading-readiness-failure`, and `missing-expected-ui` describe observed behavior. They should not be relabeled as hydration errors without separate evidence.
 - A passed run means configured checks passed. It does not prove every route or interaction in the application is correct.
 

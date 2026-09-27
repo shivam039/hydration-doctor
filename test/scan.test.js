@@ -111,6 +111,54 @@ test("detects clicks before hydration and passes when gated on readiness", async
   assert.doesNotMatch(JSON.stringify(report), /#save/);
 });
 
+test("detects pre-hydration input reset and passes readiness-gated fill without exposing values", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const secretValue = "private-fixture-input";
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    concurrency: 1,
+    routes: [
+      {
+        path: "/hydration-input-reset",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "fill",
+            selector: "#profile",
+            value: secretValue,
+            expect: { value: secretValue },
+          },
+        ],
+      },
+      {
+        path: "/hydration-input-gated",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "fill",
+            selector: "#profile",
+            checkpoint: "ready",
+            value: secretValue,
+            expect: { value: secretValue },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, false);
+  assert.equal(
+    report.results[0].diagnostics[0].category,
+    "interaction-outcome-failure",
+  );
+  assert.equal(report.results[2].passed, true);
+  assert.equal(report.results[2].interactions[0].passed, true);
+  assert.doesNotMatch(JSON.stringify(report), /private-fixture-input/);
+  assert.doesNotMatch(JSON.stringify(report), /confirmed-hydration/);
+});
+
 test("waits for an explicit hydration marker before interacting", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());

@@ -182,6 +182,68 @@ test("rejects malformed and out-of-range viewport CLI overrides", async () => {
   assert.match(errors.at(-1), /viewport width and height/);
 });
 
+test("accepts value assertions only for string-valued fill interactions", () => {
+  const base = {
+    baseUrl: "http://localhost",
+    routes: [
+      {
+        path: "/",
+        interactions: [
+          {
+            type: "fill",
+            selector: "input",
+            value: "private",
+            expect: { value: "private" },
+          },
+        ],
+      },
+    ],
+  };
+  assert.equal(
+    validateConfig(base).routes[0].interactions[0].expect.value,
+    "private",
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [
+          {
+            path: "/",
+            interactions: [
+              {
+                type: "click",
+                selector: "button",
+                expect: { value: "private" },
+              },
+            ],
+          },
+        ],
+      }),
+    /supported only for fill/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [
+          {
+            path: "/",
+            interactions: [
+              {
+                type: "fill",
+                selector: "input",
+                value: "private",
+                expect: { value: 7 },
+              },
+            ],
+          },
+        ],
+      }),
+    /expect.value must be a string/,
+  );
+});
+
 test("help and version commands are executable", async () => {
   const logs = [];
   const io = {

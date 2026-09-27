@@ -108,7 +108,7 @@ export function validateConfig(input) {
                 ) {
                   errors.push(`${label}.expect must be an object.`);
                 } else {
-                  for (const key of ["selector", "text", "url"]) {
+                  for (const key of ["selector", "text", "url", "value"]) {
                     if (
                       interaction.expect[key] !== undefined &&
                       typeof interaction.expect[key] !== "string"
@@ -123,6 +123,14 @@ export function validateConfig(input) {
                       errors,
                       false,
                     );
+                  if (
+                    interaction.expect.value !== undefined &&
+                    interaction.type !== "fill"
+                  ) {
+                    errors.push(
+                      `${label}.expect.value is supported only for fill steps.`,
+                    );
+                  }
                 }
               }
             });
