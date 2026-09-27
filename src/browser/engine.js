@@ -392,6 +392,12 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
         await locator.fill(interaction.value, { timeout });
       } else if (interaction.type === "press") {
         await locator.press(interaction.key, { timeout });
+      } else if (interaction.type === "select") {
+        await locator.selectOption(interaction.value, { timeout });
+      } else if (interaction.type === "check") {
+        await locator.check({ timeout });
+      } else if (interaction.type === "uncheck") {
+        await locator.uncheck({ timeout });
       } else {
         const submitted = await locator.evaluate((element) => {
           const form =
@@ -412,7 +418,10 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
           timeout,
         );
       }
-      if (interaction.expect?.value !== undefined) {
+      if (
+        interaction.expect?.value !== undefined ||
+        interaction.expect?.checked !== undefined
+      ) {
         if (route.readySelector) {
           await page
             .locator(route.readySelector)
@@ -420,8 +429,13 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
             .waitFor({ state: "visible", timeout });
         }
         await page.waitForFunction(
-          ({ selector, value }) => {
+          ({ selector, value, checked }) => {
             const element = document.querySelector(selector);
+            if (checked !== undefined)
+              return (
+                element instanceof HTMLInputElement &&
+                element.checked === checked
+              );
             return (
               (element instanceof HTMLInputElement ||
                 element instanceof HTMLTextAreaElement ||
@@ -432,6 +446,7 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
           {
             selector: interaction.selector,
             value: interaction.expect.value,
+            checked: interaction.expect.checked,
           },
           { timeout },
         );

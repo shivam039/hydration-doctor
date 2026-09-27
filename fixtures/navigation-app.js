@@ -38,6 +38,13 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/form-controls") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        '<html><body><main><label for="plan">Plan</label><select id="plan"><option value="basic">Basic</option><option value="hydration-private-option">Premium</option></select><label><input id="alerts" type="checkbox"> Alerts</label><input id="updates" type="checkbox" checked><p id="ready">Controls ready</p></main></body></html>',
+      );
+      return;
+    }
     if (pathname === "/responsive-visual") {
       response.writeHead(200, { "content-type": "text/html" });
       response.end(

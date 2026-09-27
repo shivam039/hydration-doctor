@@ -241,7 +241,7 @@ test("rejects malformed and out-of-range viewport CLI overrides", async () => {
   assert.match(errors.at(-1), /viewport width and height/);
 });
 
-test("accepts value assertions only for string-valued fill interactions", () => {
+test("accepts value assertions for string-valued fill and select interactions", () => {
   const base = {
     baseUrl: "http://localhost",
     routes: [
@@ -279,7 +279,7 @@ test("accepts value assertions only for string-valued fill interactions", () => 
           },
         ],
       }),
-    /supported only for fill/,
+    /supported only for fill or select/,
   );
   assert.throws(
     () =>
@@ -300,6 +300,71 @@ test("accepts value assertions only for string-valued fill interactions", () => 
         ],
       }),
     /expect.value must be a string/,
+  );
+  assert.equal(
+    validateConfig({
+      ...base,
+      routes: [
+        {
+          path: "/",
+          interactions: [
+            {
+              type: "select",
+              selector: "#plan",
+              value: "private-option",
+              expect: { value: "private-option" },
+            },
+          ],
+        },
+      ],
+    }).routes[0].interactions[0].type,
+    "select",
+  );
+});
+
+test("validates check and uncheck outcomes", () => {
+  const config = validateConfig({
+    baseUrl: "http://localhost",
+    routes: [
+      {
+        path: "/",
+        interactions: [
+          {
+            type: "check",
+            selector: "#alerts",
+            expect: { checked: true },
+          },
+          {
+            type: "uncheck",
+            selector: "#updates",
+            expect: { checked: false },
+          },
+        ],
+      },
+    ],
+  });
+  assert.deepEqual(
+    config.routes[0].interactions.map(({ type }) => type),
+    ["check", "uncheck"],
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: [
+          {
+            path: "/",
+            interactions: [
+              {
+                type: "click",
+                selector: "#alerts",
+                expect: { checked: "yes" },
+              },
+            ],
+          },
+        ],
+      }),
+    /expect.checked/,
   );
 });
 

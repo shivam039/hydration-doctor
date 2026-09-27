@@ -75,14 +75,20 @@ export function validateConfig(input) {
               if (
                 !interaction ||
                 typeof interaction !== "object" ||
-                !["click", "fill", "press", "submit"].includes(
-                  interaction.type,
-                ) ||
+                ![
+                  "click",
+                  "fill",
+                  "press",
+                  "submit",
+                  "select",
+                  "check",
+                  "uncheck",
+                ].includes(interaction.type) ||
                 typeof interaction.selector !== "string" ||
                 !interaction.selector.trim()
               ) {
                 errors.push(
-                  `${label} must define click, fill, press, or submit and a selector.`,
+                  `${label} must define a supported interaction and a selector.`,
                 );
                 return;
               }
@@ -101,10 +107,12 @@ export function validateConfig(input) {
                 );
               }
               if (
-                interaction.type === "fill" &&
+                ["fill", "select"].includes(interaction.type) &&
                 typeof interaction.value !== "string"
               )
-                errors.push(`${label}.value must be a string for fill steps.`);
+                errors.push(
+                  `${label}.value must be a string for fill or select steps.`,
+                );
               if (
                 interaction.checkpoint !== undefined &&
                 !["beforeReady", "ready"].includes(interaction.checkpoint)
@@ -141,10 +149,19 @@ export function validateConfig(input) {
                     );
                   if (
                     interaction.expect.value !== undefined &&
-                    interaction.type !== "fill"
+                    !["fill", "select"].includes(interaction.type)
                   ) {
                     errors.push(
-                      `${label}.expect.value is supported only for fill steps.`,
+                      `${label}.expect.value is supported only for fill or select steps.`,
+                    );
+                  }
+                  if (
+                    interaction.expect.checked !== undefined &&
+                    (typeof interaction.expect.checked !== "boolean" ||
+                      !["check", "uncheck"].includes(interaction.type))
+                  ) {
+                    errors.push(
+                      `${label}.expect.checked must be a boolean for check or uncheck steps.`,
                     );
                   }
                 }

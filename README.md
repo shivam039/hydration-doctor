@@ -36,7 +36,7 @@ CLI values for browser, viewport, reporter, timeout, concurrency, and retries ov
 - `navigation`: optional `{ from, click, to }` to check the configured target route through a click from the entry route.
 - `expectedUrl`: optional final URL for routes that intentionally redirect. Without it, a changed final URL is reported as an unexpected redirect.
 - `readySelector`: optional application-owned selector to wait for before evaluating the expected UI. This is useful when a page exposes an explicit hydration-complete marker.
-- `interactions`: optional ordered route steps for `click`, `fill`, `press`, or `submit`. Each step requires a CSS `selector`; `fill` requires a string `value`, and `press` requires a key name such as `Enter` or `Shift+Enter` (maximum 32 safe characters). Set `checkpoint: "ready"` to wait for the route's `readySelector` before acting, or omit it to act immediately after DOM content loads. A fill step can assert `expect: { value }`; Hydration Doctor waits for the route's `readySelector` first when configured, then verifies the value. This detects inputs reset during hydration. Reports include only the step number, action type, and pass status; selectors, keys, and entered/expected values are omitted. For example:
+- `interactions`: optional ordered route steps for `click`, `fill`, `press`, `submit`, `select`, `check`, or `uncheck`. Each step requires a CSS `selector`; `fill` and `select` require a string `value`, and `press` requires a key name such as `Enter` or `Shift+Enter` (maximum 32 safe characters). Set `checkpoint: "ready"` to wait for the route's `readySelector` before acting, or omit it to act immediately after DOM content loads. Fill/select steps can assert `expect: { value }`; check/uncheck steps can assert `expect: { checked: true|false }`. Hydration Doctor waits for the route's `readySelector` first when configured, then verifies the expected state. Reports include only the step number, action type, and pass status; selectors, keys, and entered/expected values are omitted. For example:
 
   ```js
   {
@@ -45,6 +45,8 @@ CLI values for browser, viewport, reporter, timeout, concurrency, and retries ov
     interactions: [
       { type: "click", selector: "#save", checkpoint: "ready", expect: { text: "Saved" } },
       { type: "press", selector: "#command", key: "Enter", checkpoint: "ready", expect: { text: "Opened" } },
+      { type: "select", selector: "#plan", value: "premium", checkpoint: "ready", expect: { value: "premium" } },
+      { type: "check", selector: "#alerts", checkpoint: "ready", expect: { checked: true } },
     ],
   }
   ```
