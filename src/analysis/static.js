@@ -23,6 +23,14 @@ const MAX_DIRECTORIES = 500;
 const MAX_FILE_BYTES = 1024 * 1024;
 const MAX_EXCLUDE_PATTERNS = 50;
 const MAX_EXCLUDE_PATTERN_LENGTH = 256;
+const SUPPRESSIBLE_RULES = new Set([
+  "browser-global-during-render-candidate",
+  "browser-environment-branch-candidate",
+  "nondeterministic-value-candidate",
+  "nondeterministic-date-candidate",
+  "locale-dependent-output-candidate",
+  "environment-dependent-render-candidate",
+]);
 
 export async function analyzeStaticSources(rootDirectory, options = {}) {
   if (typeof rootDirectory !== "string" || !rootDirectory.trim())
@@ -93,6 +101,7 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
 
   const findings = [];
   const parseErrors = [];
+  let suppressedFindings = 0;
   for (const filename of files.sort()) {
     const source = await readFile(filename, "utf8");
     let ast;
@@ -124,6 +133,7 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
         continue;
       }
     }
+    const suppressions = parseSuppressions(ast.comments ?? []);
     visit(ast, (node, parent) => {
       let rule;
       let evidence;
@@ -176,6 +186,10 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
         evidence = node.callee.property.name;
       }
       if (!rule) return;
+      if (suppressions.get(node.loc.start.line)?.has(rule)) {
+        suppressedFindings += 1;
+        return;
+      }
       findings.push({
         rule,
         confidence: "candidate",
@@ -195,8 +209,33 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
     filesScanned: files.length,
     skipped,
     parseErrors,
+    suppressedFindings,
     findings,
   };
+}
+
+function parseSuppressions(comments) {
+  const suppressions = new Map();
+  for (const comment of comments) {
+    const match =
+      /^\s*hydration-doctor-(ignore|ignore-next-line)\s+([a-z0-9-]+(?:\s*,\s*[a-z0-9-]+)*)\s*$/.exec(
+        comment.value,
+      );
+    if (!match) continue;
+    const rules = match[2]
+      .split(",")
+      .map((rule) => rule.trim())
+      .filter((rule) => SUPPRESSIBLE_RULES.has(rule));
+    if (rules.length === 0) continue;
+    const line =
+      match[1] === "ignore-next-line"
+        ? comment.loc.end.line + 1
+        : comment.loc.end.line;
+    const set = suppressions.get(line) ?? new Set();
+    for (const rule of rules) set.add(rule);
+    suppressions.set(line, set);
+  }
+  return suppressions;
 }
 
 function compileExcludePatterns(patterns = []) {
@@ -251,6 +290,7 @@ function parseSource(source, filename) {
       jsx: [".tsx"].includes(path.extname(filename)),
       sourceType: "module",
       filePath: filename,
+      comment: true,
     });
   }
   return parse(source, {

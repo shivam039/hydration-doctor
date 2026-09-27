@@ -5,6 +5,8 @@ const TOOL_URI = "https://github.com/shivam039/hydration-doctor";
 const RULES = {
   "browser-global-during-render-candidate":
     "Browser global access may vary between server and browser rendering.",
+  "browser-environment-branch-candidate":
+    "A browser-global typeof guard may render different output across environments.",
   "nondeterministic-value-candidate":
     "This value may differ between server and browser rendering.",
   "nondeterministic-date-candidate":
@@ -78,6 +80,7 @@ export function formatSarifReport(report) {
           parseErrorCount: Array.isArray(report?.parseErrors)
             ? report.parseErrors.length
             : 0,
+          suppressedFindings: nonNegativeInteger(report?.suppressedFindings),
         },
       },
     ],
