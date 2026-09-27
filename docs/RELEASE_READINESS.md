@@ -1,6 +1,6 @@
 # Release readiness assessment
 
-**Status: not ready for a stable 1.0 release.** The repository development version is 0.27.0; repository version metadata does not indicate npm publication. These 0.x roadmap increments have not been published.
+**Status: not ready for a stable 1.0 release.** Experimental version 0.27.0 is published on npm. The initial version has registry integrity/signature but no GitHub Actions provenance attestation; later releases are intended to use the trusted-publishing workflow.
 
 ## Verified foundation
 
@@ -14,7 +14,7 @@
 - Pinned Next.js 15.5.26 production App and Pages Router fixtures verify direct load, refresh, `<Link>` transitions, target readiness, and browser back/forward. App Router evidence also covers nested Suspense streaming and deterministic ready/stalled application markers.
 - CI runs the full suite on Node.js 20, 22, and 24 with Chromium and targeted healthy/missing-UI smoke checks on Chromium, Firefox, and WebKit with Playwright 1.63.0. The non-Chromium checks remain smoke coverage only.
 - Security limits and residual findings are recorded in the [adversarial review](security/ADVERSARIAL_REVIEW_2026-09-27.md). The [master epic roadmap](roadmap/MASTER_EPIC.md) records remaining scope.
-- Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and [release process](RELEASING.md); no publication is claimed here.
+- Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and the [release process](RELEASING.md). Version 0.27.0 is an early experimental publication; this is not a stable 1.0 readiness claim.
 
 ## Release blockers
 
@@ -24,4 +24,4 @@
 - Continuous fixture coverage includes local-storage restoration, local anonymous/authenticated flows, nested production Suspense streaming, delayed client import, input reset, ready/stalled state markers, and readiness-gated keyboard/form interactions. Real identity providers, alternative streaming strategies, slow CPU/network conditions, and production race patterns remain unverified.
 - Public APIs and configuration remain pre-1.0 with no cross-release stability promise or migration guarantees. Report schema v1 documents the current shape; it does not promise compatibility across 0.x releases.
 
-Run `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` for local reproducible checks. A passing matrix validates the current supported foundation; it does not clear the blockers above. Package publication remains a separate explicit release decision.
+Run `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` for local reproducible checks. A passing matrix validates the current supported foundation; it does not clear the blockers above. Future package publications use the protected trusted-publisher workflow.

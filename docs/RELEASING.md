@@ -15,7 +15,7 @@ After the package exists on npm, configure its trusted publisher to match this r
 
 The workflow uses a GitHub-hosted runner, npm OIDC (`id-token: write`), Node.js 24, and npm 11.15.0. npm automatically creates provenance attestations for trusted GitHub Actions publishes from this public repository. It does not use an npm token. Keep the trusted-publisher workflow filename aligned with npm's package settings.
 
-The first release must bootstrap the package from an authenticated maintainer session because a package must exist before its npm package settings can be configured. Publish only after the trusted workflow is merged, configure the publisher immediately after bootstrap, and use the trusted workflow for later versions. The maintainer explicitly authorizes this initial bootstrap in the release request.
+The initial 0.27.0 package was bootstrapped from an authenticated maintainer session because npm requires a package to exist before its trusted-publisher relationship can be configured. It has no GitHub Actions provenance attestation. Configure the publisher as described above, then use the trusted workflow for later versions.
 
 ## Each release
 

@@ -1,6 +1,6 @@
 # Release PRD: 0.27.0 — support contract and API maturity
 
-**Status:** implemented as an unreleased repository increment. No npm publication or GitHub release is implied.
+**Status:** published to npm as an experimental 0.x package on 2026-09-27. The first release used an authenticated maintainer session before npm trusted publishing was configured; it has no GitHub Actions provenance attestation.
 
 ## Problem
 
@@ -20,7 +20,7 @@ The README and API guide need a compact, evidence-based account of supported env
 - Static candidates remain advisory and are not described as runtime hydration proof.
 - Migration guidance explicitly says no 0.x migration promise exists.
 - `npm run check`, `npm pack --dry-run`, and clean packed-consumer installation and scan succeed.
-- Changelog and package version agree; no publication occurs as part of this increment.
+- Changelog and package version agree; registry metadata, executable mapping, and tarball integrity match the verified release artifact.
 
 ## Adversarial review
 
