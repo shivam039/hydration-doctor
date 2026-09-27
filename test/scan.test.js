@@ -330,6 +330,54 @@ test("fills and submits a form without copying entered values into evidence", as
   assert.doesNotMatch(JSON.stringify(report), /Ada/);
 });
 
+test("presses a key at the requested checkpoint and classifies a broken outcome", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 700,
+    routes: [
+      {
+        path: "/keyboard-ready",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "press",
+            selector: "#command",
+            key: "Enter",
+            checkpoint: "ready",
+            expect: { text: "Opened" },
+          },
+        ],
+      },
+      {
+        path: "/keyboard-broken",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "press",
+            selector: "#command",
+            key: "Enter",
+            checkpoint: "ready",
+            expect: { text: "Opened" },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "press", passed: true },
+  ]);
+  assert.equal(report.results[2].passed, false);
+  assert.equal(
+    report.results[2].diagnostics[0].category,
+    "interaction-outcome-failure",
+  );
+  assert.doesNotMatch(JSON.stringify(report), /Enter|Opened/);
+});
+
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
   const { server, baseUrl } = await startNavigationFixture({
     clientMode: "full-document",

@@ -115,6 +115,14 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/keyboard-ready" || pathname === "/keyboard-broken") {
+      const broken = pathname.endsWith("broken");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><label>Command <input id="command"></label><p id="result">Waiting</p></main><script>${broken ? "" : "document.querySelector('#command').addEventListener('keydown',event=>{if(event.key==='Enter')document.querySelector('#result').textContent='Opened'});"}document.documentElement.dataset.hydrated='true'</script></body></html>`,
+      );
+      return;
+    }
     if (
       pathname === "/expected-redirect" ||
       pathname === "/unexpected-redirect"

@@ -390,6 +390,8 @@ async function runConfiguredInteractions(page, route, baseUrl, timeout) {
         await locator.click({ timeout });
       } else if (interaction.type === "fill") {
         await locator.fill(interaction.value, { timeout });
+      } else if (interaction.type === "press") {
+        await locator.press(interaction.key, { timeout });
       } else {
         const submitted = await locator.evaluate((element) => {
           const form =

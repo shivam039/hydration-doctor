@@ -75,14 +75,30 @@ export function validateConfig(input) {
               if (
                 !interaction ||
                 typeof interaction !== "object" ||
-                !["click", "fill", "submit"].includes(interaction.type) ||
+                !["click", "fill", "press", "submit"].includes(
+                  interaction.type,
+                ) ||
                 typeof interaction.selector !== "string" ||
                 !interaction.selector.trim()
               ) {
                 errors.push(
-                  `${label} must define click, fill, or submit and a selector.`,
+                  `${label} must define click, fill, press, or submit and a selector.`,
                 );
                 return;
+              }
+              if (
+                interaction.type === "press" &&
+                (typeof interaction.key !== "string" ||
+                  !interaction.key.trim() ||
+                  interaction.key.length > 32 ||
+                  !/^[A-Za-z0-9+_.-]+$/.test(interaction.key) ||
+                  interaction.key.startsWith("+") ||
+                  interaction.key.endsWith("+") ||
+                  interaction.key.includes("++"))
+              ) {
+                errors.push(
+                  `${label}.key must be a supported key name or shortcut up to 32 characters.`,
+                );
               }
               if (
                 interaction.type === "fill" &&
@@ -524,6 +540,7 @@ function routeAssertionSignature(route) {
     interactions: route.interactions?.map((interaction) => ({
       type: interaction.type,
       selector: interaction.selector,
+      key: interaction.key,
       value: interaction.value,
       checkpoint: interaction.checkpoint,
       expect: interaction.expect
