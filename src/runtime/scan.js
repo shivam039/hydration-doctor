@@ -89,12 +89,16 @@ export async function scan(config, overrides = {}) {
           }
         }
       };
-      await Promise.all(
+      const workerResults = await Promise.allSettled(
         Array.from(
           { length: Math.min(effective.concurrency, jobs.length) },
           () => worker(),
         ),
       );
+      const workerFailure = workerResults.find(
+        (result) => result.status === "rejected",
+      );
+      if (workerFailure) throw workerFailure.reason;
       return collected;
     },
     signal,

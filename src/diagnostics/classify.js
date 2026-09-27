@@ -58,7 +58,11 @@ export function classifyScenarioFindings(messages, reproduction) {
       category = "unexpected-redirect";
     else if (/readiness selector/i.test(message))
       category = "loading-readiness-failure";
-    else if (/selector .* failed|expected-text assertion failed/i.test(message))
+    else if (
+      /configured expected UI selector failed|selector .* failed|expected-text assertion failed/i.test(
+        message,
+      )
+    )
       category = "missing-expected-ui";
     else if (
       /Configured (click|fill|submit) interaction step \d+ failed/i.test(

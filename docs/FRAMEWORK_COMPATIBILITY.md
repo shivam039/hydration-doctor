@@ -12,4 +12,6 @@ Hydration Doctor's scanner is framework-independent: it checks the browser-visib
 
 The development fixture runs in development mode. A separate fixture runs `next build` and `next start` before scanning production direct loads and refreshes. Its streaming route verifies a visible Suspense fallback followed by delayed content and a bounded missing-content failure. CI exercises these fixtures on Node.js 20, 22, and 24 with Chromium. This is scanner-compatibility evidence for the pinned Next.js version, not a claim that all Next.js behaviors are supported. Other streaming/Suspense patterns, Server/Client Component transitions, dynamic imports, and route prefetching do not yet have dedicated compatibility fixtures.
 
+CI also runs a short healthy-route and missing-UI smoke check in Chromium, Firefox, and WebKit on Node.js 22, using the Playwright version in `package-lock.json`. This confirms basic launch, navigation, selector assertions, classification, and cleanup for those engines. It does not establish full Next.js, visual-baseline, or broader browser compatibility outside Chromium.
+
 See [`test/next-compat.test.js`](../test/next-compat.test.js), [`test/next-production.test.js`](../test/next-production.test.js), [`test/scan.test.js`](../test/scan.test.js), and the [fixture inventory](FIXTURE_INVENTORY.md) for executable evidence.

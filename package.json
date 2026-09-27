@@ -27,6 +27,7 @@
   "scripts": {
     "test": "node --test",
     "test:consumer": "node scripts/consumer-smoke.js",
+    "test:browser-smoke": "node scripts/browser-engine-smoke.js",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
