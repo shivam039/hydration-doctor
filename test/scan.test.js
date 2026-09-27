@@ -58,6 +58,55 @@ test("checks direct navigation and refresh and detects missing expected UI", asy
   );
 });
 
+test("detects clicks before hydration and passes when gated on readiness", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 500,
+    routes: [
+      {
+        path: "/hydration-button-broken",
+        interactions: [
+          { type: "click", selector: "#save", expect: { text: "Saved" } },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, false);
+  assert.match(report.results[0].findings[0], /interaction step 1 failed/);
+  assert.doesNotMatch(JSON.stringify(report), /#save/);
+});
+
+test("waits for an explicit hydration marker before interacting", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/hydration-button-gated",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "click",
+            selector: "#save",
+            checkpoint: "ready",
+            expect: { text: "Saved" },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "click", passed: true },
+  ]);
+});
+
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
   const { server, baseUrl } = await startNavigationFixture({
     clientMode: "full-document",

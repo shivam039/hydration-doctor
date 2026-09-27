@@ -147,6 +147,14 @@ export async function runPage(browser, url, config, scenario) {
       config,
       scenario,
     );
+    let interactionEvidence = [];
+    if (scenario.name === "direct")
+      interactionEvidence = await runConfiguredInteractions(
+        page,
+        scenario.route,
+        config.baseUrl,
+        config.timeout,
+      );
     if (scenario.name === "direct")
       await assertRouteExpectations(page, scenario.route, config.timeout);
     const result = {
@@ -159,6 +167,7 @@ export async function runPage(browser, url, config, scenario) {
       diagnostics: [],
       events,
       documentEvidence: documentCapture.evidence,
+      interactions: interactionEvidence,
     };
     let finalUrl = page.url();
     if (response.status() >= 400 && scenario.name !== "refresh")
@@ -175,6 +184,12 @@ export async function runPage(browser, url, config, scenario) {
           config,
           scenario,
         );
+      result.interactions = await runConfiguredInteractions(
+        page,
+        scenario.route,
+        config.baseUrl,
+        config.timeout,
+      );
       await assertRouteExpectations(page, scenario.route, config.timeout);
       finalUrl = page.url();
       result.url = sanitizeUrl(finalUrl);
@@ -286,6 +301,57 @@ export async function runPage(browser, url, config, scenario) {
   } finally {
     await context.close();
   }
+}
+
+async function runConfiguredInteractions(page, route, baseUrl, timeout) {
+  const evidence = [];
+  for (const [index, interaction] of (route.interactions ?? []).entries()) {
+    try {
+      if (interaction.checkpoint === "ready") {
+        await page
+          .locator(route.readySelector)
+          .first()
+          .waitFor({ state: "visible", timeout });
+      }
+      const locator = page.locator(interaction.selector).first();
+      if (interaction.type === "click") {
+        await locator.click({ timeout });
+      } else if (interaction.type === "fill") {
+        await locator.fill(interaction.value, { timeout });
+      } else {
+        const submitted = await locator.evaluate((element) => {
+          const form =
+            element instanceof HTMLFormElement ? element : element.form;
+          if (!form) return false;
+          form.requestSubmit();
+          return true;
+        });
+        if (!submitted) throw new Error("No form");
+      }
+      if (interaction.expect?.selector || interaction.expect?.text) {
+        await assertRouteExpectations(
+          page,
+          {
+            expectedSelector: interaction.expect.selector,
+            expectedText: interaction.expect.text,
+          },
+          timeout,
+        );
+      }
+      if (interaction.expect?.url) {
+        const expectedUrl = new URL(interaction.expect.url, baseUrl).href;
+        await page.waitForURL((candidate) => candidate.href === expectedUrl, {
+          timeout,
+        });
+      }
+      evidence.push({ index: index + 1, type: interaction.type, passed: true });
+    } catch {
+      throw new Error(
+        `Configured ${interaction.type} interaction step ${index + 1} failed or its expected result was not observed.`,
+      );
+    }
+  }
+  return evidence;
 }
 
 async function verifyHistory(page, config, scenario, result) {

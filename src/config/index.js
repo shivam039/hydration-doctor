@@ -61,6 +61,73 @@ export function validateConfig(input) {
             errors,
             true,
           );
+        if (route.interactions !== undefined) {
+          if (
+            !Array.isArray(route.interactions) ||
+            route.interactions.length > 10
+          ) {
+            errors.push(
+              `routes[${index}].interactions must be an array with at most 10 steps.`,
+            );
+          } else {
+            route.interactions.forEach((interaction, stepIndex) => {
+              const label = `routes[${index}].interactions[${stepIndex}]`;
+              if (
+                !interaction ||
+                typeof interaction !== "object" ||
+                !["click", "fill", "submit"].includes(interaction.type) ||
+                typeof interaction.selector !== "string" ||
+                !interaction.selector.trim()
+              ) {
+                errors.push(
+                  `${label} must define click, fill, or submit and a selector.`,
+                );
+                return;
+              }
+              if (
+                interaction.type === "fill" &&
+                typeof interaction.value !== "string"
+              )
+                errors.push(`${label}.value must be a string for fill steps.`);
+              if (
+                interaction.checkpoint !== undefined &&
+                !["beforeReady", "ready"].includes(interaction.checkpoint)
+              ) {
+                errors.push(
+                  `${label}.checkpoint must be beforeReady or ready.`,
+                );
+              }
+              if (interaction.checkpoint === "ready" && !route.readySelector)
+                errors.push(
+                  `${label} uses checkpoint ready but route.readySelector is missing.`,
+                );
+              if (interaction.expect !== undefined) {
+                if (
+                  !interaction.expect ||
+                  typeof interaction.expect !== "object"
+                ) {
+                  errors.push(`${label}.expect must be an object.`);
+                } else {
+                  for (const key of ["selector", "text", "url"]) {
+                    if (
+                      interaction.expect[key] !== undefined &&
+                      typeof interaction.expect[key] !== "string"
+                    )
+                      errors.push(`${label}.expect.${key} must be a string.`);
+                  }
+                  if (typeof interaction.expect.url === "string")
+                    validateHttpTarget(
+                      interaction.expect.url,
+                      baseUrl,
+                      `${label}.expect.url`,
+                      errors,
+                      false,
+                    );
+                }
+              }
+            });
+          }
+        }
         for (const key of [
           "expectedSelector",
           "expectedText",

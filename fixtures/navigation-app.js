@@ -32,6 +32,17 @@ export async function startNavigationFixture({
       return;
     }
     if (
+      pathname === "/hydration-button-broken" ||
+      pathname === "/hydration-button-gated"
+    ) {
+      const gated = pathname.endsWith("gated");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><button id="save" ${gated ? "disabled" : ""}>Save</button><p id="result">Waiting</p></main><script>setTimeout(()=>{document.querySelector('#save').disabled=false;document.querySelector('#save').addEventListener('click',()=>{document.querySelector('#result').textContent='Saved'});document.documentElement.dataset.hydrated='true'},800)</script></body></html>`,
+      );
+      return;
+    }
+    if (
       pathname === "/expected-redirect" ||
       pathname === "/unexpected-redirect"
     ) {

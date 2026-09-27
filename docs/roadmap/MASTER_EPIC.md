@@ -14,26 +14,26 @@ This roadmap records scope, dependencies, acceptance, and evidence for the 18 ep
 
 ## Epic index
 
-| ID    | Epic                                    |      Phase | Depends on                 | Status                   |
-| ----- | --------------------------------------- | ---------: | -------------------------- | ------------------------ |
-| HD-01 | Repository Foundation                   |          1 | —                          | Complete                 |
-| HD-02 | CLI and Configuration                   |          1 | HD-01                      | In progress              |
-| HD-03 | Browser Runtime Engine                  |          1 | HD-01, HD-02               | Complete                 |
-| HD-04 | Navigation Consistency                  |          1 | HD-02, HD-03               | Complete                 |
-| HD-05 | SSR and Hydration Instrumentation       |          2 | HD-03                      | Complete                 |
-| HD-06 | React and Next.js Adapters              |          2 | HD-05                      | Planned                  |
-| HD-07 | Hydration Interactivity Testing         |          2 | HD-03, HD-05               | Planned                  |
-| HD-08 | DOM and Structural Comparison           |          2 | HD-03                      | Complete                 |
-| HD-09 | Loading, State, and Data Consistency    |          2 | HD-04, HD-05               | Planned                  |
-| HD-10 | Visual and Layout Regression            |          3 | HD-08                      | Planned                  |
-| HD-11 | Root-Cause Diagnostics                  |          3 | HD-05, HD-08, HD-09, HD-10 | Planned                  |
-| HD-12 | Optional Static Analysis                |          3 | HD-01                      | Planned                  |
-| HD-13 | Reporting and Developer Experience      |          4 | HD-08, HD-10, HD-11, HD-14 | Complete                 |
-| HD-14 | Security, Privacy, and Reliability      |          4 | HD-01 onward               | Complete                 |
-| HD-15 | Fixtures and Automated Testing          | Continuous | HD-01 onward               | In progress (continuous) |
-| HD-16 | CI/CD and npm Release Engineering       |          5 | HD-01, HD-15               | Planned                  |
-| HD-17 | Documentation and Open-Source Readiness |          5 | HD-02, HD-13, HD-14        | Planned                  |
-| HD-18 | Extensibility and Stable Release        |          5 | HD-01–HD-17                | Planned                  |
+| ID    | Epic                                    |      Phase | Depends on                 | Status                         |
+| ----- | --------------------------------------- | ---------: | -------------------------- | ------------------------------ |
+| HD-01 | Repository Foundation                   |          1 | —                          | Complete                       |
+| HD-02 | CLI and Configuration                   |          1 | HD-01                      | In progress                    |
+| HD-03 | Browser Runtime Engine                  |          1 | HD-01, HD-02               | Complete                       |
+| HD-04 | Navigation Consistency                  |          1 | HD-02, HD-03               | Complete                       |
+| HD-05 | SSR and Hydration Instrumentation       |          2 | HD-03                      | Complete                       |
+| HD-06 | React and Next.js Adapters              |          2 | HD-05                      | Planned                        |
+| HD-07 | Hydration Interactivity Testing         |          2 | HD-03, HD-05               | Complete (click fixture scope) |
+| HD-08 | DOM and Structural Comparison           |          2 | HD-03                      | Complete                       |
+| HD-09 | Loading, State, and Data Consistency    |          2 | HD-04, HD-05               | Planned                        |
+| HD-10 | Visual and Layout Regression            |          3 | HD-08                      | Planned                        |
+| HD-11 | Root-Cause Diagnostics                  |          3 | HD-05, HD-08, HD-09, HD-10 | Planned                        |
+| HD-12 | Optional Static Analysis                |          3 | HD-01                      | Planned                        |
+| HD-13 | Reporting and Developer Experience      |          4 | HD-08, HD-10, HD-11, HD-14 | Complete                       |
+| HD-14 | Security, Privacy, and Reliability      |          4 | HD-01 onward               | Complete                       |
+| HD-15 | Fixtures and Automated Testing          | Continuous | HD-01 onward               | In progress (continuous)       |
+| HD-16 | CI/CD and npm Release Engineering       |          5 | HD-01, HD-15               | Planned                        |
+| HD-17 | Documentation and Open-Source Readiness |          5 | HD-02, HD-13, HD-14        | Planned                        |
+| HD-18 | Extensibility and Stable Release        |          5 | HD-01–HD-17                | Planned                        |
 
 ## Epics, acceptance, and completion evidence
 
@@ -75,7 +75,7 @@ Framework-independent core with optional React/Next capability detection coverin
 
 ### HD-07 — Hydration Interactivity Testing
 
-Configurable click/input/form/navigation interactions, ignored action and reset-input evidence, supported slow network/CPU scenarios, expected outcomes, and safe default interactions without React internals.
+Configurable click/input/form interactions with before-ready and readiness-gated checkpoints and expected outcomes, without React internals. Input reset evidence, navigation steps, and slow network/CPU scenarios remain planned.
 
 **Acceptance:** broken pre-hydration interaction fails; correctly gated interaction passes. **Evidence:** paired browser fixtures.
 

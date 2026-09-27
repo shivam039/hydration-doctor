@@ -36,6 +36,20 @@ CLI values for browser, reporter, timeout, concurrency, and retries override con
 - `navigation`: optional `{ from, click, to }` to check the configured target route through a click from the entry route.
 - `expectedUrl`: optional final URL for routes that intentionally redirect. Without it, a changed final URL is reported as an unexpected redirect.
 - `readySelector`: optional application-owned selector to wait for before evaluating the expected UI. This is useful when a page exposes an explicit hydration-complete marker.
+- `interactions`: optional ordered route steps for `click`, `fill`, or `submit`. Each step requires a CSS `selector`; `fill` also requires a string `value`. Set `checkpoint: "ready"` to wait for the route's `readySelector` before acting, or omit it to act immediately after DOM content loads. A step can assert `expect: { selector, text, url }`. Reports include only the step number, action type, and pass status; selectors and entered values are omitted. For example:
+
+  ```js
+  {
+    path: "/account",
+    readySelector: 'html[data-hydrated="true"]',
+    interactions: [
+      { type: "click", selector: "#save", checkpoint: "ready", expect: { text: "Saved" } },
+    ],
+  }
+  ```
+
+  Interactions run on direct-load and refresh scenarios. A failed action or unmet step expectation fails that scenario. This does not inspect framework internals or model slow CPU/network conditions.
+
 - `snapshot`: optional `{ selector, compareText, attributes, ignoreSelectors }` checkpoint compared between direct load and refresh. Text and attributes are excluded by default; `ignoreSelectors` removes volatile subtrees. Snapshots are capped at 100 elements, 512 characters per captured value, five attributes, and 20 ignore selectors; reports identify truncated comparisons. A difference is reported as navigation-dependent rendering inconsistency, not as proof of hydration failure.
 - `timeout`: per-operation milliseconds, 1–120000 (default 10000).
 - `concurrency`: number of independent scenarios to run at once, 1–8 (default 1).
