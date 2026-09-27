@@ -56,6 +56,51 @@ test("reports bounded JS/JSX candidates with exact locations and excludes depend
   );
 });
 
+test("reports browser-global typeof guards without matching strings or comments", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-guard-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "guards.jsx"),
+    [
+      'const isBrowser = typeof window !== "undefined";',
+      'const hasDocument = typeof document === "object";',
+      'const hasNavigator = typeof navigator !== "undefined";',
+      'const hasProcess = typeof process !== "undefined";',
+      'const note = "typeof window"; // typeof document',
+    ].join("\n"),
+  );
+  const report = await analyzeStaticSources(root);
+  assert.deepEqual(
+    report.findings.map(({ rule, line, column, evidence }) => ({
+      rule,
+      line,
+      column,
+      evidence,
+    })),
+    [
+      {
+        rule: "browser-environment-branch-candidate",
+        line: 1,
+        column: 19,
+        evidence: "typeof browser global",
+      },
+      {
+        rule: "browser-environment-branch-candidate",
+        line: 2,
+        column: 21,
+        evidence: "typeof browser global",
+      },
+      {
+        rule: "browser-environment-branch-candidate",
+        line: 3,
+        column: 22,
+        evidence: "typeof browser global",
+      },
+    ],
+  );
+  assert.doesNotMatch(JSON.stringify(report), /hasProcess|typeof window/);
+});
+
 test("analyzes TypeScript and TSX syntax without flagging type annotations as parse errors", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-ts-"));
   t.after(() => rm(root, { recursive: true, force: true }));
