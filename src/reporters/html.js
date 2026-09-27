@@ -31,10 +31,15 @@ export function formatHtmlReport(report) {
       const displayRoute = sanitizeUrl(result.route ?? "");
       const details = [
         ...result.findings.map((finding) => `<li>${escapeHtml(finding)}</li>`),
-        ...result.diagnostics.map(
-          (diagnostic) =>
-            `<li><strong>${escapeHtml(diagnostic.category)}</strong>: <pre>${escapeHtml(JSON.stringify(diagnostic.evidence, null, 2))}</pre></li>`,
-        ),
+        ...result.diagnostics.map((diagnostic) => {
+          const guidance = diagnostic.explanation
+            ? `<p>${escapeHtml(diagnostic.explanation)}</p>`
+            : "";
+          const reproduction = diagnostic.reproduction
+            ? `<p>Reproduction: ${escapeHtml(diagnostic.reproduction.steps.join(" "))}</p>`
+            : "";
+          return `<li><strong>${escapeHtml(diagnostic.category)}</strong>${guidance}${reproduction}<pre>${escapeHtml(JSON.stringify(diagnostic.evidence, null, 2))}</pre></li>`;
+        }),
       ].join("");
       const href = safeHref(displayUrl);
       return `<article class="scenario ${result.passed ? "passed" : "failed"}"><h2>${escapeHtml(result.scenario)} — ${result.passed ? "Pass" : "Fail"}</h2><p><code>${escapeHtml(displayRoute)}</code> · <a href="${escapeHtml(href)}">${escapeHtml(displayUrl)}</a></p>${details ? `<h3>Findings</h3><ul>${details}</ul>` : "<p>No findings recorded.</p>"}</article>`;

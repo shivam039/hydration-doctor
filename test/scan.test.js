@@ -331,6 +331,15 @@ test("classifies a real React hydration mismatch and keeps generic errors separa
     (diagnostic) => diagnostic.category === "confirmed-hydration-warning",
   );
   assert.ok(hydrationDiagnostic);
+  assert.deepEqual(hydrationDiagnostic.reproduction, {
+    scenario: "direct",
+    route: "/hydration-warning",
+    url: `${baseUrl}/hydration-warning`,
+    steps: ["Open this route directly in the configured browser."],
+  });
+  assert.equal(hydrationDiagnostic.confidence, "observed");
+  assert.equal(hydrationDiagnostic.severity, "error");
+  assert.equal(hydrationDiagnostic.file, undefined);
   assert.equal(hydrationResult.ssrClientDifferences[0].kind, "text");
   assert.match(hydrationDiagnostic.evidence, /Text content did not match/);
   const genericResult = report.results[4];
@@ -367,6 +376,9 @@ test("compares configured DOM checkpoints without treating ignored dynamic regio
     report.results[0].diagnostics.at(-1).category,
     "navigation-dependent-rendering-inconsistency",
   );
+  assert.deepEqual(report.results[0].diagnostics.at(-1).reproduction.steps, [
+    "Open this route directly, then reload it in the browser.",
+  ]);
   assert.equal(report.results[2].passed, true);
   assert.deepEqual(report.results[2].diagnostics, []);
 });

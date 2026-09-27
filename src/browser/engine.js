@@ -169,6 +169,7 @@ export async function runPage(browser, url, config, scenario) {
       documentEvidence: documentCapture.evidence,
       interactions: interactionEvidence,
     };
+    result.reproduction = buildReproduction(scenario, result.url);
     let finalUrl = page.url();
     if (response.status() >= 400 && scenario.name !== "refresh")
       result.findings.push(`Document returned HTTP ${response.status()}.`);
@@ -259,6 +260,7 @@ export async function runPage(browser, url, config, scenario) {
               evidence: differences,
               explanation:
                 "The configured snapshot differs between the initial server response and the observed client DOM. This difference alone does not prove a hydration error.",
+              reproduction: result.reproduction,
             });
             result.findings.push(
               "Configured SSR and client DOM snapshots differ; see evidence. This does not alone prove a hydration error.",
@@ -268,8 +270,8 @@ export async function runPage(browser, url, config, scenario) {
       }
     }
     result.diagnostics.push(
-      ...classifyRuntimeEvents(events),
-      ...classifyScenarioFindings(result.findings),
+      ...classifyRuntimeEvents(events, result.reproduction),
+      ...classifyScenarioFindings(result.findings, result.reproduction),
     );
     if (events.console.length)
       result.findings.push(
@@ -293,14 +295,34 @@ export async function runPage(browser, url, config, scenario) {
       url: sanitizeUrl(page.url()),
       passed: false,
       findings: [redactSensitiveText(error.message)],
-      diagnostics: classifyScenarioFindings([
-        redactSensitiveText(error.message),
-      ]),
+      diagnostics: classifyScenarioFindings(
+        [redactSensitiveText(error.message)],
+        buildReproduction(scenario, sanitizeUrl(page.url())),
+      ),
+      reproduction: buildReproduction(scenario, sanitizeUrl(page.url())),
       events,
     };
   } finally {
     await context.close();
   }
+}
+
+function buildReproduction(scenario, url) {
+  const steps =
+    scenario.name === "refresh"
+      ? ["Open this route directly, then reload it in the browser."]
+      : scenario.name === "client-navigation"
+        ? [
+            "Open the configured navigation entry route.",
+            "Activate its configured navigation control and follow the target route.",
+          ]
+        : ["Open this route directly in the configured browser."];
+  return {
+    scenario: scenario.name,
+    route: redactSensitiveText(scenario.route.path),
+    url,
+    steps,
+  };
 }
 
 async function runConfiguredInteractions(page, route, baseUrl, timeout) {

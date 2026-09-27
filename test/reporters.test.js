@@ -16,7 +16,12 @@ test("HTML reports escape untrusted scenario and diagnostic content", () => {
         url: "javascript:alert(1)",
         findings: ["<script>injected</script>"],
         diagnostics: [
-          { category: "<iframe>", evidence: { body: "</pre><script>" } },
+          {
+            category: "<iframe>",
+            evidence: { body: "</pre><script>" },
+            explanation: "<svg/onload=alert(1)>",
+            reproduction: { steps: ["<img src=x onerror=alert(1)>"] },
+          },
         ],
       },
     ],
@@ -24,6 +29,7 @@ test("HTML reports escape untrusted scenario and diagnostic content", () => {
   assert.doesNotMatch(html, /<script>|<img |<svg |<iframe>/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /&lt;\/pre&gt;&lt;script&gt;/);
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
   assert.match(html, /href="#">javascript:alert\(1\)<\/a>/);
 });
 

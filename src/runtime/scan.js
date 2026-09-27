@@ -96,6 +96,7 @@ export async function scan(config, overrides = {}) {
       evidence: differences,
       explanation:
         "The configured DOM snapshot differed between direct navigation and refresh. This does not by itself prove a hydration mismatch or identify a root cause.",
+      reproduction: refresh.reproduction ?? direct.reproduction,
     };
     for (const result of [direct, refresh]) {
       result.diagnostics ??= [];
