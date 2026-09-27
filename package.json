@@ -26,6 +26,7 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
+    "test:consumer": "node scripts/consumer-smoke.js",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
