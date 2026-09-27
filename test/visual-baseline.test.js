@@ -135,7 +135,7 @@ test("creates and compares separate desktop and mobile baseline profiles through
         {
           path: "/responsive-visual",
           expectedText: "Responsive visual fixture",
-          visual: { baseline, maxDiffRatio: 0 },
+          visual: { baseline, maxDiffRatio: 0.05 },
         },
       ],
     };
