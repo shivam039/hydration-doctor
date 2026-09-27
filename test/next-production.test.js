@@ -81,6 +81,38 @@ test(
       readyContentBeforeStream: false,
     });
 
+    const delayedClientPage = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/delayed-client"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/delayed-client`, {
+          waitUntil: "commit",
+          timeout: 10_000,
+        });
+        const fallback = page.getByRole("status");
+        await fallback.waitFor({ state: "visible", timeout: 5000 });
+        const fallbackVisible = await fallback.isVisible();
+        const readyBeforeImport = await page
+          .locator("#delayed-client-ready")
+          .isVisible()
+          .catch(() => false);
+        await page
+          .locator("#delayed-client-ready")
+          .waitFor({ state: "visible", timeout: 5000 });
+        await page.close();
+        return { fallbackVisible, readyBeforeImport };
+      },
+    );
+    assert.deepEqual(delayedClientPage, {
+      fallbackVisible: true,
+      readyBeforeImport: false,
+    });
+
     const report = await scan({
       baseUrl,
       browser: "chromium",
@@ -102,6 +134,12 @@ test(
           expectedText: "Streamed account dashboard ready",
           readySelector: "main",
         },
+        {
+          path: "/delayed-client",
+          expectedSelector: "#delayed-client-ready",
+          expectedText: "Delayed client module ready",
+          readySelector: "#delayed-client-ready",
+        },
       ],
     });
     assert.equal(report.status, "passed");
@@ -114,7 +152,31 @@ test(
         ["refresh", true],
         ["direct", true],
         ["refresh", true],
+        ["direct", true],
+        ["refresh", true],
       ],
+    );
+
+    const missingDelayedClient = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 1000,
+      routes: [
+        {
+          path: "/delayed-client-missing",
+          expectedSelector: "#delayed-client-ready",
+        },
+      ],
+    });
+    assert.equal(missingDelayedClient.status, "failed");
+    assert.equal(missingDelayedClient.results[0].passed, false);
+    assert.equal(
+      missingDelayedClient.results[0].diagnostics[0].category,
+      "missing-expected-ui",
+    );
+    assert.doesNotMatch(
+      JSON.stringify(missingDelayedClient.results[0].diagnostics),
+      /confirmed-hydration/,
     );
 
     const boundedStart = Date.now();
