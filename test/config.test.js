@@ -71,6 +71,50 @@ test("normalizes comma-separated and array reporter configuration", () => {
   );
 });
 
+test("accepts only explicit HTTP(S) origins for cross-origin browser access", () => {
+  const base = { baseUrl: "http://localhost", routes: ["/"] };
+  assert.deepEqual(
+    validateConfig({ ...base, allowOrigins: ["https://cdn.example.test/"] })
+      .allowOrigins,
+    ["https://cdn.example.test"],
+  );
+  assert.throws(
+    () => validateConfig({ ...base, allowOrigins: ["https://cdn.test/path"] }),
+    /only an origin/,
+  );
+  assert.throws(
+    () => validateConfig({ ...base, allowOrigins: ["file:///etc/passwd"] }),
+    /http or https/,
+  );
+});
+
+test("rejects oversized route and snapshot configurations", () => {
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: Array.from({ length: 51 }, (_, index) => `/${index}`),
+      }),
+    /no more than 50 entries/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: [
+          {
+            path: "/",
+            snapshot: {
+              selector: "main",
+              attributes: ["a", "b", "c", "d", "e", "f"],
+            },
+          },
+        ],
+      }),
+    /at most 5 attributes/,
+  );
+});
+
 test("parses CLI options and rejects missing option values", () => {
   assert.deepEqual(
     parseArgs(["scan", "--config", "config.js", "--reporter=json"]),

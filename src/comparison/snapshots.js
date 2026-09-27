@@ -1,3 +1,7 @@
+const MAX_ELEMENTS = 100;
+const MAX_VALUE_LENGTH = 512;
+const MAX_DIFFERENCES = 500;
+
 export async function captureSnapshot(page, options) {
   return page
     .locator(options.selector)
@@ -14,12 +18,15 @@ export async function captureServerSnapshot(page, html, options) {
       const ignored = settings.ignoreSelectors ?? [];
       const selectedAttributes = settings.attributes ?? [];
       const elements = [];
-      const visit = (element, path) => {
-        if (ignored.some((selector) => element.matches(selector))) return;
+      const pending = [{ element: root, path: "0" }];
+      let truncated = false;
+      while (pending.length && elements.length < 100) {
+        const { element, path } = pending.pop();
+        if (ignored.some((selector) => element.matches(selector))) continue;
         const attributes = Object.fromEntries(
           selectedAttributes
             .filter((name) => element.hasAttribute(name))
-            .map((name) => [name, element.getAttribute(name)]),
+            .map((name) => [name, element.getAttribute(name).slice(0, 512)]),
         );
         const directText = settings.compareText
           ? Array.from(element.childNodes)
@@ -27,6 +34,7 @@ export async function captureServerSnapshot(page, html, options) {
               .map((node) => node.textContent.replace(/\s+/g, " ").trim())
               .filter(Boolean)
               .join(" ")
+              .slice(0, 512)
           : undefined;
         elements.push({
           path,
@@ -34,27 +42,38 @@ export async function captureServerSnapshot(page, html, options) {
           attributes,
           text: directText,
         });
-        Array.from(element.children).forEach((child, index) =>
-          visit(child, `${path}.${index}`),
-        );
-      };
-      visit(root, "0");
-      return { selector: settings.selector, elements };
+        const children = element.children;
+        const available = Math.max(0, 100 - elements.length - pending.length);
+        const count = Math.min(children.length, available);
+        if (count < children.length) truncated = true;
+        for (let index = count - 1; index >= 0; index -= 1)
+          pending.push({ element: children[index], path: `${path}.${index}` });
+      }
+      if (pending.length) truncated = true;
+      return { selector: settings.selector, elements, truncated };
     },
     { htmlText: html, settings: options },
   );
 }
 
 function snapshotElement(root, settings) {
+  const MAX_ELEMENTS = 100;
+  const MAX_VALUE_LENGTH = 512;
   const ignored = settings.ignoreSelectors ?? [];
   const selectedAttributes = settings.attributes ?? [];
   const elements = [];
-  const visit = (element, path) => {
-    if (ignored.some((selector) => element.matches(selector))) return;
+  const pending = [{ element: root, path: "0" }];
+  let truncated = false;
+  while (pending.length && elements.length < MAX_ELEMENTS) {
+    const { element, path } = pending.pop();
+    if (ignored.some((selector) => element.matches(selector))) continue;
     const attributes = Object.fromEntries(
       selectedAttributes
         .filter((name) => element.hasAttribute(name))
-        .map((name) => [name, element.getAttribute(name)]),
+        .map((name) => [
+          name,
+          element.getAttribute(name).slice(0, MAX_VALUE_LENGTH),
+        ]),
     );
     const directText = settings.compareText
       ? Array.from(element.childNodes)
@@ -62,6 +81,7 @@ function snapshotElement(root, settings) {
           .map((node) => node.textContent.replace(/\s+/g, " ").trim())
           .filter(Boolean)
           .join(" ")
+          .slice(0, MAX_VALUE_LENGTH)
       : undefined;
     elements.push({
       path,
@@ -69,16 +89,27 @@ function snapshotElement(root, settings) {
       attributes,
       text: directText,
     });
-    Array.from(element.children).forEach((child, index) =>
-      visit(child, `${path}.${index}`),
+    const children = element.children;
+    const available = Math.max(
+      0,
+      MAX_ELEMENTS - elements.length - pending.length,
     );
-  };
-  visit(root, "0");
-  return { selector: settings.selector, elements };
+    const count = Math.min(children.length, available);
+    if (count < children.length) truncated = true;
+    for (let index = count - 1; index >= 0; index -= 1)
+      pending.push({ element: children[index], path: `${path}.${index}` });
+  }
+  if (pending.length) truncated = true;
+  return { selector: settings.selector, elements, truncated };
 }
 
 export function compareSnapshots(before, after) {
   const differences = [];
+  let differencesTruncated = false;
+  const add = (difference) => {
+    if (differences.length < MAX_DIFFERENCES) differences.push(difference);
+    else differencesTruncated = true;
+  };
   if (before.selector !== after.selector) {
     return [
       {
@@ -94,7 +125,7 @@ export function compareSnapshots(before, after) {
     const left = before.elements[index];
     const right = after.elements[index];
     if (!left || !right) {
-      differences.push({
+      add({
         path: left?.path ?? right.path,
         kind: "element-presence",
         before: left?.tag ?? null,
@@ -103,18 +134,13 @@ export function compareSnapshots(before, after) {
       continue;
     }
     if (left.tag !== right.tag)
-      differences.push({
-        path: left.path,
-        kind: "tag",
-        before: left.tag,
-        after: right.tag,
-      });
+      add({ path: left.path, kind: "tag", before: left.tag, after: right.tag });
     for (const name of new Set([
       ...Object.keys(left.attributes),
       ...Object.keys(right.attributes),
     ])) {
       if (left.attributes[name] !== right.attributes[name])
-        differences.push({
+        add({
           path: left.path,
           kind: "attribute",
           name,
@@ -123,12 +149,23 @@ export function compareSnapshots(before, after) {
         });
     }
     if (left.text !== right.text)
-      differences.push({
+      add({
         path: left.path,
         kind: "text",
         before: left.text ?? "",
         after: right.text ?? "",
       });
   }
+  if (differencesTruncated)
+    differences.push({
+      kind: "differences-truncated",
+      maximum: MAX_DIFFERENCES,
+    });
+  if (before.truncated || after.truncated)
+    differences.push({
+      kind: "snapshot-truncated",
+      before: !!before.truncated,
+      after: !!after.truncated,
+    });
   return differences;
 }

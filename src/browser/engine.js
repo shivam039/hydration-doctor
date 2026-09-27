@@ -47,22 +47,32 @@ export async function runPage(browser, url, config, scenario) {
     colorScheme: config.colorScheme,
     reducedMotion: config.reducedMotion,
     storageState: config.storageState,
+    serviceWorkers: "block",
   });
-  const allowedDocumentOrigins = new Set([new URL(config.baseUrl).origin]);
+  const allowedOrigins = new Set([
+    new URL(config.baseUrl).origin,
+    ...(config.allowOrigins ?? []),
+  ]);
   for (const route of config.routes) {
     if (route.expectedUrl)
-      allowedDocumentOrigins.add(
-        new URL(route.expectedUrl, config.baseUrl).origin,
-      );
+      allowedOrigins.add(new URL(route.expectedUrl, config.baseUrl).origin);
   }
   await context.route("**/*", async (route) => {
     const request = route.request();
-    if (request.isNavigationRequest()) {
-      const origin = new URL(request.url()).origin;
-      if (!allowedDocumentOrigins.has(origin)) {
+    try {
+      const requestUrl = new URL(request.url());
+      if (
+        !["http:", "https:"].includes(requestUrl.protocol) ||
+        requestUrl.username ||
+        requestUrl.password ||
+        !allowedOrigins.has(requestUrl.origin)
+      ) {
         await route.abort("blockedbyclient");
         return;
       }
+    } catch {
+      await route.abort("blockedbyclient");
+      return;
     }
     await route.continue();
   });
@@ -74,21 +84,34 @@ export async function runPage(browser, url, config, scenario) {
     responses: [],
     documentNavigations: 0,
     redirects: [],
+    dropped: {
+      console: 0,
+      pageErrors: 0,
+      failedRequests: 0,
+      responses: 0,
+      redirects: 0,
+    },
   };
   page.on("console", (message) => {
     if (message.type() === "error")
-      events.console.push({
+      pushEvent(events, "console", {
         type: "error",
-        text: redactSensitiveText(message.text()),
+        text: boundedText(redactSensitiveText(message.text())),
       });
   });
   page.on("pageerror", (error) =>
-    events.pageErrors.push(redactSensitiveText(error.message)),
+    pushEvent(
+      events,
+      "pageErrors",
+      boundedText(redactSensitiveText(error.message)),
+    ),
   );
   page.on("requestfailed", (request) =>
-    events.failedRequests.push({
-      url: sanitizeUrl(request.url()),
-      reason: redactSensitiveText(request.failure()?.errorText ?? "unknown"),
+    pushEvent(events, "failedRequests", {
+      url: boundedText(sanitizeUrl(request.url())),
+      reason: boundedText(
+        redactSensitiveText(request.failure()?.errorText ?? "unknown"),
+      ),
     }),
   );
   page.on("response", (response) => {
@@ -98,18 +121,17 @@ export async function runPage(browser, url, config, scenario) {
     ) {
       events.documentNavigations += 1;
       if (response.status() >= 300 && response.status() < 400)
-        events.redirects.push({
-          from: sanitizeUrl(response.url()),
+        pushEvent(events, "redirects", {
+          from: boundedText(sanitizeUrl(response.url())),
           status: response.status(),
-          location: response.headers().location
-            ? sanitizeUrl(
-                new URL(response.headers().location, response.url()).href,
-              )
-            : null,
+          location: sanitizeRedirectLocation(
+            response.headers().location,
+            response.url(),
+          ),
         });
     }
-    events.responses.push({
-      url: sanitizeUrl(response.url()),
+    pushEvent(events, "responses", {
+      url: boundedText(sanitizeUrl(response.url())),
       status: response.status(),
     });
   });
@@ -278,7 +300,9 @@ async function verifyHistory(page, config, scenario, result) {
     await page.waitForURL(entryUrl, { timeout: config.timeout });
     history.back = true;
   } catch (error) {
-    result.findings.push(`Browser back navigation failed: ${error.message}`);
+    result.findings.push(
+      `Browser back navigation failed: ${redactSensitiveText(error.message)}`,
+    );
     return history;
   }
   try {
@@ -290,7 +314,9 @@ async function verifyHistory(page, config, scenario, result) {
     await assertRouteExpectations(page, scenario.route, config.timeout);
     history.forward = true;
   } catch (error) {
-    result.findings.push(`Browser forward navigation failed: ${error.message}`);
+    result.findings.push(
+      `Browser forward navigation failed: ${redactSensitiveText(error.message)}`,
+    );
   }
   return history;
 }
@@ -331,6 +357,12 @@ async function captureDocumentEvidence(response, config, scenario) {
     (scenario.name !== "client-navigation" && scenario.route.snapshot);
   if (!needsHtml) return { evidence, html: null };
   const maxBytes = 256 * 1024;
+  const contentEncoding = headers["content-encoding"]?.trim().toLowerCase();
+  if (contentEncoding && contentEncoding !== "identity") {
+    evidence.captureNote =
+      "Compressed document bodies are not copied into evidence because decoded size cannot be bounded safely.";
+    return { evidence, html: null };
+  }
   if (evidence.byteLength === null) {
     evidence.captureNote =
       "Response size is unknown (possibly streaming); body capture was skipped.";
@@ -352,10 +384,39 @@ async function captureDocumentEvidence(response, config, scenario) {
     evidence.captureNote = `Document body was not complete within ${timeoutMs}ms.`;
     return { evidence, html: null };
   }
+  if (body.byteLength > maxBytes) {
+    evidence.byteLength = body.byteLength;
+    evidence.captureNote = `Actual response body exceeds the ${maxBytes}-byte evidence limit.`;
+    return { evidence, html: null };
+  }
   const html = body.toString("utf8");
   evidence.byteLength = body.byteLength;
   evidence.sha256 = createHash("sha256").update(body).digest("hex");
   evidence.complete = true;
   if (config.includeHtmlEvidence) evidence.html = redactSensitiveText(html);
   return { evidence, html };
+}
+
+const EVENT_LIMIT = 50;
+const EVENT_TEXT_LIMIT = 1024;
+
+function pushEvent(events, name, value) {
+  if (events[name].length < EVENT_LIMIT) events[name].push(value);
+  else events.dropped[name] += 1;
+}
+
+function boundedText(value) {
+  const text = String(value);
+  return text.length <= EVENT_TEXT_LIMIT
+    ? text
+    : `${text.slice(0, EVENT_TEXT_LIMIT)}… [truncated]`;
+}
+
+function sanitizeRedirectLocation(location, responseUrl) {
+  if (!location) return null;
+  try {
+    return boundedText(sanitizeUrl(new URL(location, responseUrl).href));
+  } catch {
+    return "[invalid redirect location]";
+  }
 }

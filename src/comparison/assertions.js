@@ -32,7 +32,7 @@ export async function assertRouteExpectations(page, route, timeout) {
       .waitFor({ state: "visible", timeout })
       .catch(() => {
         throw new Error(
-          `Expected visible text was not found within ${timeout}ms: ${route.expectedText}`,
+          `Configured expected-text assertion failed within ${timeout}ms.`,
         );
       });
   }
@@ -46,7 +46,7 @@ async function waitForSelector(page, selector, state, timeout, purpose) {
     .catch(() => {
       const expectation = state === "attached" ? "to exist" : "to be visible";
       throw new Error(
-        `The ${purpose} selector ${JSON.stringify(selector)} failed ${expectation} within ${timeout}ms.`,
+        `The configured ${purpose} selector failed ${expectation} within ${timeout}ms.`,
       );
     });
 }

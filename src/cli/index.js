@@ -11,6 +11,7 @@ import {
   formatJsonReport,
   formatTerminalReport,
 } from "../reporters/index.js";
+import { redactSensitiveText } from "../utils/redact.js";
 
 const VERSION = "0.1.0";
 
@@ -60,7 +61,7 @@ export async function main(args = process.argv.slice(2), io = console) {
       `Unknown command: ${command ?? "(none)"}. Run hydration-doctor --help.`,
     );
   } catch (error) {
-    io.error(error.message);
+    io.error(redactSensitiveText(error.message));
     return 2;
   }
 }
@@ -162,7 +163,7 @@ async function scanCommand(options, positional, io) {
     : [config.reporter];
   if (options.output) {
     if (reporters.length > 1) {
-      await mkdir(options.output, { recursive: true });
+      await mkdir(options.output, { recursive: true, mode: 0o700 });
       for (const reporter of reporters.filter((item) => item !== "text")) {
         const extension = reporter === "json" ? "json" : "html";
         await writeFile(
@@ -173,18 +174,23 @@ async function scanCommand(options, positional, io) {
           reporter === "json"
             ? `${formatJsonReport(report)}\n`
             : formatHtmlReport(report),
-          { flag: "wx" },
+          { flag: "wx", mode: 0o600 },
         );
       }
     } else if (reporters[0] === "html") {
-      await writeFile(options.output, formatHtmlReport(report), { flag: "wx" });
+      await writeFile(options.output, formatHtmlReport(report), {
+        flag: "wx",
+        mode: 0o600,
+      });
     } else if (reporters[0] === "json") {
       await writeFile(options.output, `${formatJsonReport(report)}\n`, {
         flag: "wx",
+        mode: 0o600,
       });
     } else {
       await writeFile(options.output, `${formatJsonReport(report)}\n`, {
         flag: "wx",
+        mode: 0o600,
       });
     }
   }
@@ -193,7 +199,7 @@ async function scanCommand(options, positional, io) {
   return report.status === "passed" ? 0 : 1;
 }
 
-const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, optional navigation, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. For multiple reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
+const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. Cross-origin requests are blocked unless allowlisted. For multiple reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
 
 if (
   process.argv[1] &&

@@ -28,6 +28,8 @@ export function validateConfig(input) {
   }
   if (!Array.isArray(input.routes) || input.routes.length === 0)
     errors.push("routes must be a non-empty array.");
+  else if (input.routes.length > 50)
+    errors.push("routes must contain no more than 50 entries.");
   else
     input.routes.forEach((route, index) => {
       if (typeof route === "string") {
@@ -78,6 +80,14 @@ export function validateConfig(input) {
           errors.push(`routes[${index}].snapshot must include a selector.`);
         } else if (route.snapshot) {
           if (
+            (route.snapshot.attributes?.length ?? 0) > 5 ||
+            (route.snapshot.ignoreSelectors?.length ?? 0) > 20
+          ) {
+            errors.push(
+              `routes[${index}].snapshot supports at most 5 attributes and 20 ignoreSelectors.`,
+            );
+          }
+          if (
             route.snapshot.compareText !== undefined &&
             typeof route.snapshot.compareText !== "boolean"
           ) {
@@ -111,7 +121,12 @@ export function validateConfig(input) {
       "navigation must have string `from`, `click`, and `to` properties.",
     );
   }
-  if (input.navigation && baseUrl) {
+  if (
+    input.navigation &&
+    baseUrl &&
+    typeof input.navigation.from === "string" &&
+    typeof input.navigation.to === "string"
+  ) {
     validateHttpTarget(
       input.navigation.from,
       baseUrl,
@@ -126,6 +141,30 @@ export function validateConfig(input) {
       errors,
       false,
     );
+  }
+  if (input.allowOrigins !== undefined) {
+    if (!Array.isArray(input.allowOrigins)) {
+      errors.push("allowOrigins must be an array of HTTP(S) origins.");
+    } else {
+      const normalizedOrigins = [];
+      input.allowOrigins.forEach((origin, index) => {
+        try {
+          if (typeof origin !== "string") throw new Error("must be a string");
+          const parsed = new URL(origin);
+          if (!new Set(["http:", "https:"]).has(parsed.protocol))
+            throw new Error("must use http or https");
+          if (parsed.username || parsed.password)
+            throw new Error("must not include credentials");
+          if (parsed.pathname !== "/" || parsed.search || parsed.hash)
+            throw new Error("must contain only an origin");
+          normalizedOrigins.push(parsed.origin);
+        } catch (error) {
+          errors.push(`allowOrigins[${index}] ${error.message}.`);
+        }
+      });
+      if (new Set(normalizedOrigins).size !== normalizedOrigins.length)
+        errors.push("allowOrigins must not contain duplicate origins.");
+    }
   }
   const timeout = input.timeout ?? 10000;
   if (!Number.isInteger(timeout) || timeout < 1 || timeout > 120000)
@@ -236,6 +275,13 @@ export function validateConfig(input) {
     ...(input.reporter === undefined
       ? {}
       : { reporter: reporters.length === 1 ? reporters[0] : reporters }),
+    ...(input.allowOrigins === undefined
+      ? {}
+      : {
+          allowOrigins: input.allowOrigins.map(
+            (origin) => new URL(origin).origin,
+          ),
+        }),
     routes: input.routes.map((route) =>
       typeof route === "string" ? { path: route } : route,
     ),
