@@ -1,6 +1,6 @@
 # Release readiness assessment
 
-**Status: not ready for a stable 1.0 release.** The repository development version is 0.23.0; repository version metadata does not indicate npm publication.
+**Status: not ready for a stable 1.0 release.** The repository development version is 0.27.0; repository version metadata does not indicate npm publication. These 0.x roadmap increments have not been published.
 
 ## Verified foundation
 
@@ -11,7 +11,7 @@
 - `scan` honors AbortSignal cancellation through active browser contexts and awaits concurrent worker cleanup before rejecting.
 - Static analysis recognizes browser-global `typeof` guards and exact line-level rule suppressions across JS/JSX and TS/TSX. JSON/SARIF expose only a suppression count; source text is not copied.
 - Configured snapshots compare direct route output with client-side navigation output. Form interactions cover select/check/uncheck state with redacted evidence.
-- The pinned Next.js 15.5.26 production App Router fixture verifies a `<Link>` transition, target readiness, and browser back/forward behavior.
+- Pinned Next.js 15.5.26 production App and Pages Router fixtures verify direct load, refresh, `<Link>` transitions, target readiness, and browser back/forward. App Router evidence also covers nested Suspense streaming and deterministic ready/stalled application markers.
 - CI runs the full suite on Node.js 20, 22, and 24 with Chromium and targeted healthy/missing-UI smoke checks on Chromium, Firefox, and WebKit with Playwright 1.63.0. The non-Chromium checks remain smoke coverage only.
 - Security limits and residual findings are recorded in the [adversarial review](security/ADVERSARIAL_REVIEW_2026-09-27.md). The [master epic roadmap](roadmap/MASTER_EPIC.md) records remaining scope.
 - Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and [release process](RELEASING.md); no publication is claimed here.
@@ -19,9 +19,9 @@
 ## Release blockers
 
 - Next.js 15.5.26 App and Pages Router fixtures pass development and production direct-load/refresh scans; production App Router fixtures also verify one `<Link>` transition, Suspense streaming, and one delayed client `import()` readiness pattern. Other advanced routing/rendering behaviors remain unverified.
-- Visual comparison supports opt-in persistent PNG baselines with explicit update mode and path/symlink checks. One responsive fixture is verified at 1280×800 and 390×844 with separate baselines; broader route, browser, and device-emulation matrices remain unverified.
+- Visual comparison supports opt-in persistent PNG baselines with explicit update mode and path/symlink checks. Route-level Chromium profiles cover desktop (1280×800), tablet (768×1024), and emulated iPhone SE (320×568) on one fixture. This does not establish physical-device or cross-browser visual coverage.
 - AST analysis covers documented JavaScript/JSX and TypeScript/TSX candidate patterns, exact line suppressions, configurable bounded source exclusions, and JSON/SARIF output. It does not understand execution timing or a complete set of hydration hazards.
-- Continuous fixture coverage includes local-storage restoration, expected anonymous/authenticated browser-state flows, a production Suspense stream, one delayed client import, input-reset/readiness-gated fill behavior, readiness-gated keyboard and form-control interactions. Real identity providers, alternative streaming patterns, and broader state races remain unverified.
-- Public APIs and configuration remain pre-1.0 and are not promised stable. No migration guarantees have been established.
+- Continuous fixture coverage includes local-storage restoration, local anonymous/authenticated flows, nested production Suspense streaming, delayed client import, input reset, ready/stalled state markers, and readiness-gated keyboard/form interactions. Real identity providers, alternative streaming strategies, slow CPU/network conditions, and production race patterns remain unverified.
+- Public APIs and configuration remain pre-1.0 with no cross-release stability promise or migration guarantees. Report schema v1 documents the current shape; it does not promise compatibility across 0.x releases.
 
-Run `npm run check` and `npm run test:consumer` for local reproducible checks. A passing matrix validates the current supported foundation; it does not clear the blockers above. Package publication remains a separate explicit release decision.
+Run `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` for local reproducible checks. A passing matrix validates the current supported foundation; it does not clear the blockers above. Package publication remains a separate explicit release decision.

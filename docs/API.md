@@ -14,12 +14,12 @@ The package exports the following entry points from `hydration-doctor`:
 
 The `hydration-doctor/config` subpath exports `defineConfig`, `loadConfig`, and `validateConfig`.
 
-The scan result uses `schemaVersion: 1`. The [JSON Schema for report version 1](schema/report-v1.schema.json) defines the structural contract. Reports contain route/scenario results and diagnostics; see [reading reports](REPORTS.md) for meaning and privacy limits. Additive report fields may appear within schema version 1. Consumers should tolerate unknown fields and should not depend on incidental diagnostic prose.
+The scan result uses `schemaVersion: 1`. The [JSON Schema for report version 1](schema/report-v1.schema.json) describes the current structural contract. Reports contain route/scenario results and diagnostics; see [reading reports](REPORTS.md) for meaning and privacy limits. Additive fields may appear within schema version 1. Diagnostic wording and capability coverage may evolve. The package remains pre-1.0, so the report schema and public API have no cross-release compatibility or migration guarantee; a future stable release policy will be documented separately.
 
 `scan(config, { signal })` accepts a standard `AbortSignal`. If it is already aborted, the scan rejects before launching a browser. If it aborts during a run, active browser contexts are closed and the scan promise rejects with `signal.reason`; no partial report is returned. Abort reasons are caller-controlled and may contain sensitive text, so avoid logging private data in them.
 
 For persistent visual comparison, set `routes[].visual.baseline` to a simple PNG filename and optionally set `baselineDir`. A normal scan reads but never writes that file; the CLI's `--update-baselines` flag explicitly creates or replaces configured baseline files. A missing baseline produces an inconclusive scan result.
 
-Hydration Doctor is experimental and pre-1.0. The package version is a repository development version, not evidence of npm publication. Public API and configuration stability is not guaranteed; breaking changes may occur between 0.x versions without migration guarantees. See the [release process](RELEASING.md) and [changelog](../CHANGELOG.md).
+Hydration Doctor is experimental and pre-1.0. The package version is a repository development version, not evidence of npm publication. Public API and configuration stability is not guaranteed; breaking changes may occur between 0.x versions without migration guarantees. See the [migration guide](MIGRATING.md), [release process](RELEASING.md), and [changelog](../CHANGELOG.md).
 
 The export names and representative helper behavior are pinned by [`test/public-api.test.js`](../test/public-api.test.js). A fresh packed-package installation and browser scan is covered by `npm run test:consumer`.
