@@ -17,6 +17,86 @@ import { formatHtmlReport } from "../src/reporters/html.js";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
+function trackAbortListeners(signal) {
+  const counts = { added: 0, removed: 0 };
+  const add = signal.addEventListener.bind(signal);
+  const remove = signal.removeEventListener.bind(signal);
+  signal.addEventListener = (type, ...args) => {
+    if (type === "abort") counts.added += 1;
+    return add(type, ...args);
+  };
+  signal.removeEventListener = (type, ...args) => {
+    if (type === "abort") counts.removed += 1;
+    return remove(type, ...args);
+  };
+  return counts;
+}
+
+test("rejects an already-aborted scan with the caller's exact reason", async () => {
+  const controller = new AbortController();
+  const reason = new Error("caller cancelled scan");
+  controller.abort(reason);
+  await assert.rejects(
+    scan(
+      { baseUrl: "http://localhost", routes: ["/"] },
+      { signal: controller.signal },
+    ),
+    (error) => error === reason,
+  );
+});
+
+test("aborting during concurrent readiness waits rejects promptly and cleans up", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const controller = new AbortController();
+  const listeners = trackAbortListeners(controller.signal);
+  const reason = new Error("stop this scan");
+  const startedAt = Date.now();
+  const scanPromise = scan(
+    {
+      baseUrl,
+      browser: "chromium",
+      timeout: 60000,
+      concurrency: 2,
+      routes: [
+        { path: "/", expectedSelector: "#never-appears" },
+        { path: "/client", expectedSelector: "#also-never-appears" },
+      ],
+    },
+    { signal: controller.signal },
+  );
+  const timer = setTimeout(() => controller.abort(reason), 300);
+  try {
+    await assert.rejects(scanPromise, (error) => error === reason);
+    assert.ok(Date.now() - startedAt < 5000, "abort should stop the 60s waits");
+    assert.ok(listeners.added > 0);
+    assert.equal(listeners.removed, listeners.added);
+  } finally {
+    clearTimeout(timer);
+  }
+});
+
+test("removes AbortSignal listeners after a successful scan", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const controller = new AbortController();
+  const listeners = trackAbortListeners(controller.signal);
+  const report = await scan(
+    { baseUrl, browser: "chromium", routes: ["/"] },
+    { signal: controller.signal },
+  );
+  assert.equal(report.status, "passed");
+  assert.ok(listeners.added > 0);
+  assert.equal(listeners.removed, listeners.added);
+});
+
+test("rejects values that are not AbortSignal instances", async () => {
+  await assert.rejects(
+    scan({ baseUrl: "http://localhost", routes: ["/"] }, { signal: {} }),
+    /overrides.signal must be an AbortSignal/,
+  );
+});
+
 test("checks direct navigation and refresh and detects missing expected UI", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());
@@ -590,6 +670,7 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
   t.after(() => rm(dir, { recursive: true, force: true }));
   const configPath = path.join(dir, "doctor.config.js");
   const htmlPath = path.join(dir, "report.html");
+  const junitPath = path.join(dir, "results.xml");
   const outputDir = path.join(dir, "all");
   await writeFile(
     configPath,
@@ -627,7 +708,26 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
         "scan",
         "--config",
         configPath,
-        "--reporter=html,json",
+        "--reporter=junit",
+        "--output",
+        junitPath,
+      ],
+      io,
+    ),
+    0,
+  );
+  assert.match(
+    await readFile(junitPath, "utf8"),
+    /<testsuite name="hydration-doctor"/,
+  );
+  assert.equal((await stat(junitPath)).mode & 0o777, 0o600);
+  assert.equal(
+    await main(
+      [
+        "scan",
+        "--config",
+        configPath,
+        "--reporter=html,json,junit",
         "--output",
         outputDir,
       ],
@@ -636,9 +736,17 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
     0,
   );
   const names = await readdir(outputDir);
-  assert.equal(names.length, 2);
+  assert.equal(names.length, 3);
   assert.ok(names.some((name) => name.endsWith(".html")));
   assert.ok(names.some((name) => name.endsWith(".json")));
+  assert.ok(names.some((name) => name.endsWith(".xml")));
+  const combinedJunitPath = path.join(
+    outputDir,
+    names.find((name) => name.endsWith(".xml")),
+  );
+  const junitXml = await readFile(combinedJunitPath, "utf8");
+  assert.match(junitXml, /<testsuite name="hydration-doctor" tests="2"/);
+  assert.equal((await stat(combinedJunitPath)).mode & 0o777, 0o600);
   await assert.rejects(
     readFile(htmlPath).then(() =>
       main(

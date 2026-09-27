@@ -16,12 +16,14 @@ import {
 
 const browserTypes = { chromium, firefox, webkit };
 
-export async function withBrowser(config, callback) {
+export async function withBrowser(config, callback, signal) {
+  throwIfAborted(signal);
   const browserType = browserTypes[config.browser];
   let browser;
   try {
     browser = await browserType.launch({ headless: true });
   } catch (error) {
+    if (signal?.aborted) throw abortReason(signal);
     if (/Executable doesn't exist|browserType\.launch/i.test(error.message)) {
       throw new Error(
         `Playwright ${config.browser} is not installed. Run: npx playwright install ${config.browser}`,
@@ -30,13 +32,19 @@ export async function withBrowser(config, callback) {
     throw new Error(`Could not launch ${config.browser}: ${error.message}`);
   }
   try {
+    throwIfAborted(signal);
     return await callback(browser);
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } catch (error) {
+      if (!signal?.aborted) throw error;
+    }
   }
 }
 
-export async function runPage(browser, url, config, scenario) {
+export async function runPage(browser, url, config, scenario, signal) {
+  throwIfAborted(signal);
   const device = config.device ? devices[config.device] : {};
   if (config.device && !device)
     throw new Error(`Unknown Playwright device descriptor: ${config.device}`);
@@ -50,6 +58,15 @@ export async function runPage(browser, url, config, scenario) {
     storageState: config.storageState,
     serviceWorkers: "block",
   });
+  const closeContextOnAbort = () => {
+    void context.close().catch(() => {});
+  };
+  signal?.addEventListener("abort", closeContextOnAbort, { once: true });
+  if (signal?.aborted) {
+    signal.removeEventListener("abort", closeContextOnAbort);
+    await context.close().catch(() => {});
+    throw abortReason(signal);
+  }
   const allowedOrigins = new Set([
     new URL(config.baseUrl).origin,
     ...(config.allowOrigins ?? []),
@@ -58,26 +75,41 @@ export async function runPage(browser, url, config, scenario) {
     if (route.expectedUrl)
       allowedOrigins.add(new URL(route.expectedUrl, config.baseUrl).origin);
   }
-  await context.route("**/*", async (route) => {
-    const request = route.request();
-    try {
-      const requestUrl = new URL(request.url());
-      if (
-        !["http:", "https:"].includes(requestUrl.protocol) ||
-        requestUrl.username ||
-        requestUrl.password ||
-        !allowedOrigins.has(requestUrl.origin)
-      ) {
+  try {
+    await context.route("**/*", async (route) => {
+      const request = route.request();
+      try {
+        const requestUrl = new URL(request.url());
+        if (
+          !["http:", "https:"].includes(requestUrl.protocol) ||
+          requestUrl.username ||
+          requestUrl.password ||
+          !allowedOrigins.has(requestUrl.origin)
+        ) {
+          await route.abort("blockedbyclient");
+          return;
+        }
+      } catch {
         await route.abort("blockedbyclient");
         return;
       }
-    } catch {
-      await route.abort("blockedbyclient");
-      return;
-    }
-    await route.continue();
-  });
-  const page = await context.newPage();
+      await route.continue();
+    });
+  } catch (error) {
+    signal?.removeEventListener("abort", closeContextOnAbort);
+    await context.close().catch(() => {});
+    if (signal?.aborted) throw abortReason(signal);
+    throw error;
+  }
+  let page;
+  try {
+    page = await context.newPage();
+  } catch (error) {
+    signal?.removeEventListener("abort", closeContextOnAbort);
+    await context.close().catch(() => {});
+    if (signal?.aborted) throw abortReason(signal);
+    throw error;
+  }
   const events = {
     console: [],
     pageErrors: [],
@@ -161,7 +193,7 @@ export async function runPage(browser, url, config, scenario) {
     const result = {
       scenario: scenario.name,
       route: redactSensitiveText(scenario.route.path),
-      url: sanitizeUrl(page.url()),
+      url: sanitizeUrl(page?.url() ?? url),
       status: response.status(),
       passed: false,
       findings: [],
@@ -296,6 +328,7 @@ export async function runPage(browser, url, config, scenario) {
       !hasConfirmedHydrationWarning(result.diagnostics);
     return result;
   } catch (error) {
+    if (signal?.aborted) throw abortReason(signal);
     return {
       scenario: scenario.name,
       route: redactSensitiveText(scenario.route.path),
@@ -310,8 +343,18 @@ export async function runPage(browser, url, config, scenario) {
       events,
     };
   } finally {
-    await context.close();
+    signal?.removeEventListener("abort", closeContextOnAbort);
+    if (signal?.aborted) await context.close().catch(() => {});
+    else await context.close();
   }
+}
+
+function abortReason(signal) {
+  return signal.reason ?? new Error("Scan cancelled.");
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw abortReason(signal);
 }
 
 function buildReproduction(scenario, url) {

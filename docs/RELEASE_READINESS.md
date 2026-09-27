@@ -7,6 +7,9 @@
 - Node.js 20, 22, and 24 CI matrix with lint, unit/integration/CLI/browser tests, format check, package dry-run, and packed-consumer browser scan.
 - The consumer scan installs the tarball into a clean temporary project and scans a local HTTP fixture using the installed CLI.
 - The public API export names and representative behaviors have contract tests. JSON output declares `schemaVersion: 1`; additive fields and pre-1.0 API changes are documented.
+- Report v1 has a published Draft 2020-12 JSON Schema; an opt-in JUnit XML reporter is escaped, redacted, and covered by CLI/API tests.
+- `scan` honors AbortSignal cancellation through active browser contexts and awaits concurrent worker cleanup before rejecting.
+- CI runs the full suite on Node.js 20, 22, and 24 with Chromium and targeted healthy/missing-UI smoke checks on Chromium, Firefox, and WebKit with Playwright 1.63.0. The non-Chromium checks remain smoke coverage only.
 - Security limits and residual findings are recorded in the [adversarial review](security/ADVERSARIAL_REVIEW_2026-09-27.md). The [master epic roadmap](roadmap/MASTER_EPIC.md) records remaining scope.
 
 ## Release blockers

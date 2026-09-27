@@ -55,6 +55,61 @@ test("rejects unsafe URLs and invalid browser names", () => {
   );
 });
 
+test("rejects duplicate routes after same-origin URL normalization without exposing targets", () => {
+  const routes = [
+    "/account?access_token=top-secret",
+    { path: "https://EXAMPLE.test:443/account?access_token=top-secret" },
+  ];
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "https://example.test:443/app",
+        routes,
+      }),
+    (error) => {
+      assert.match(error.message, /routes\[1\] duplicates routes\[0\]/);
+      assert.doesNotMatch(error.message, /top-secret|access_token/);
+      return true;
+    },
+  );
+  assert.deepEqual(routes, [
+    "/account?access_token=top-secret",
+    { path: "https://EXAMPLE.test:443/account?access_token=top-secret" },
+  ]);
+});
+
+test("canonicalizes dot segments and percent-escape case but preserves route distinctions", () => {
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "https://example.test",
+        routes: ["/a/../account", { path: "/account" }],
+      }),
+    /routes\[1\] duplicates routes\[0\]/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "https://example.test",
+        routes: ["/asset/a%2fb", "/asset/a%2Fb"],
+      }),
+    /routes\[1\] duplicates routes\[0\]/,
+  );
+  assert.doesNotThrow(() =>
+    validateConfig({
+      baseUrl: "https://example.test",
+      routes: [
+        "/account?tab=one#top",
+        "/account?tab=two#top",
+        "/account?tab=one#other",
+        "/account?tab=one",
+        "/asset/a%2Fb",
+        "/asset/a/b",
+      ],
+    }),
+  );
+});
+
 test("normalizes comma-separated and array reporter configuration", () => {
   const base = { baseUrl: "http://localhost", routes: ["/"] };
   assert.deepEqual(
@@ -64,6 +119,10 @@ test("normalizes comma-separated and array reporter configuration", () => {
   assert.deepEqual(
     validateConfig({ ...base, reporter: ["html", "json"] }).reporter,
     ["html", "json"],
+  );
+  assert.equal(
+    validateConfig({ ...base, reporter: "junit" }).reporter,
+    "junit",
   );
   assert.throws(
     () => validateConfig({ ...base, reporter: "html,html" }),

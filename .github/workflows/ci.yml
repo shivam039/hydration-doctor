@@ -25,3 +25,18 @@ jobs:
       - run: npm run check
       - run: npm pack --dry-run
       - run: npm run test:consumer
+  browser-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run test:browser-smoke -- ${{ matrix.browser }}

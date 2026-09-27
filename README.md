@@ -55,16 +55,17 @@ CLI values for browser, viewport, reporter, timeout, concurrency, and retries ov
 - `timeout`: per-operation milliseconds, 1–120000 (default 10000).
 - `concurrency`: number of independent scenarios to run at once, 1–8 (default 1).
 - `retries`: additional attempts for a scenario, 0–5 (default 0). A pass after a failure is still a failed, intermittent result.
+- Route checks that have the same normalized target and assertions are duplicates. Separate assertions may intentionally check the same URL; repeated snapshot/visual targets are rejected because comparison evidence is associated by target. Query strings and fragments remain part of the target.
 - `browser`: `chromium`, `firefox`, or `webkit` (default `chromium`).
 - `viewport`: `{ width, height }` (default 1280×800). `device`, `locale`, `timezoneId`, `colorScheme`, and `reducedMotion` configure the browser context.
 - `storageState`: optional Playwright storage state path or object for authenticated checks. The scanner does not print its contents.
 - `allowOrigins`: optional list of additional HTTP(S) origins whose requests the browser may make. By default, all cross-origin requests are blocked, including scripts, images, APIs, and frames. Origins named in `allowOrigins` and explicit `expectedUrl` redirect destinations are permitted. Service workers are disabled in scan contexts so they cannot bypass request interception.
 - `includeHtmlEvidence`: opt-in to include a redacted initial document HTML excerpt in JSON evidence. Off by default; capture is limited to uncompressed responses with a known size of at most 256 KiB. Oversized, compressed, or streaming responses are summarized without storing their body.
-- `reporter`: `text`, `json`, or `html`, or an array/comma-separated combination such as `html,json` (default `text`).
+- `reporter`: `text`, `json`, `html`, or `junit`, or an array/comma-separated combination such as `html,json,junit` (default `text`). JUnit XML is suitable for CI test result ingestion.
 
 Optional source candidates can be inspected separately with `npx hydration-doctor analyze --source ./src`. The analyzer reports JS/JSX browser-global reads, `Date.now()`/`Math.random()`, and `process.env` references with file/line/column. These are candidate patterns, not runtime errors or proof of a hydration failure. It skips common generated/dependency directories, caps input to 500 files of at most 1 MiB each, and never edits source files. See [static analysis details](docs/STATIC_ANALYSIS.md).
 
-Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML and JSON report files are created with owner-only permissions where the operating system supports them. Snapshots, configured screenshots, and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
+Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML, JSON, and JUnit report files are created with owner-only permissions where the operating system supports them. Snapshots, configured screenshots, and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
 
 ## Guides
 

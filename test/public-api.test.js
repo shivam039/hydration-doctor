@@ -7,6 +7,7 @@ import {
   DoctorError,
   getExitCode,
   formatJsonReport,
+  formatJUnitReport,
   redactSensitiveText,
   sanitizeUrl,
 } from "../src/index.js";
@@ -21,6 +22,7 @@ test("pins documented package and config entry-point exports", () => {
     "createReactDiagnosticsAdapter",
     "formatTerminalReport",
     "formatJsonReport",
+    "formatJUnitReport",
     "formatHtmlReport",
     "DoctorError",
     "getExitCode",

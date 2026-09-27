@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/shivam039/hydration-doctor/blob/main/docs/schema/report-v1.schema.json",
+  "title": "Hydration Doctor JSON report, schema version 1",
+  "description": "Stable structural contract for version 1 reports. Consumers should tolerate additional fields and avoid depending on diagnostic prose.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "runId",
+    "browser",
+    "baseUrl",
+    "status",
+    "results"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "browser": { "enum": ["chromium", "firefox", "webkit"] },
+    "baseUrl": { "type": "string" },
+    "status": { "enum": ["passed", "failed", "inconclusive"] },
+    "results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/result" }
+    }
+  },
+  "$defs": {
+    "result": {
+      "type": "object",
+      "required": [
+        "scenario",
+        "route",
+        "url",
+        "passed",
+        "findings",
+        "diagnostics",
+        "events",
+        "reproduction"
+      ],
+      "properties": {
+        "scenario": { "type": "string", "minLength": 1 },
+        "route": { "type": "string" },
+        "url": { "type": "string" },
+        "status": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "boolean" },
+        "findings": { "type": "array", "items": { "type": "string" } },
+        "diagnostics": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "events": { "$ref": "#/$defs/events" },
+        "reproduction": { "$ref": "#/$defs/reproduction" },
+        "attempts": { "type": "array", "items": { "type": "object" } },
+        "interactions": { "type": "array", "items": { "type": "object" } },
+        "documentEvidence": { "type": "object" },
+        "snapshot": { "type": "object" },
+        "ssrSnapshot": { "type": "object" },
+        "ssrClientDifferences": { "type": "array" },
+        "visualScreenshot": { "type": "object" },
+        "visualComparison": { "type": "object" },
+        "visualBaseline": { "type": "object" },
+        "visualDiff": { "type": "object" },
+        "visualBaselineDiff": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "category",
+        "confidence",
+        "severity",
+        "evidence",
+        "reproduction"
+      ],
+      "properties": {
+        "category": { "type": "string", "minLength": 1 },
+        "confidence": { "enum": ["observed", "candidate"] },
+        "severity": { "enum": ["info", "warning", "error"] },
+        "evidence": {},
+        "explanation": { "type": "string" },
+        "reproduction": { "$ref": "#/$defs/reproduction" }
+      },
+      "additionalProperties": true
+    },
+    "reproduction": {
+      "type": "object",
+      "required": ["scenario", "route", "url", "steps"],
+      "properties": {
+        "scenario": { "type": "string" },
+        "route": { "type": "string" },
+        "url": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "object",
+      "required": [
+        "console",
+        "pageErrors",
+        "failedRequests",
+        "responses",
+        "documentNavigations",
+        "redirects",
+        "dropped"
+      ],
+      "properties": {
+        "console": { "type": "array", "items": { "type": "object" } },
+        "pageErrors": { "type": "array", "items": { "type": "string" } },
+        "failedRequests": { "type": "array", "items": { "type": "object" } },
+        "responses": { "type": "array", "items": { "type": "object" } },
+        "documentNavigations": { "type": "integer", "minimum": 0 },
+        "redirects": { "type": "array", "items": { "type": "object" } },
+        "dropped": {
+          "type": "object",
+          "required": [
+            "console",
+            "pageErrors",
+            "failedRequests",
+            "responses",
+            "redirects"
+          ],
+          "properties": {
+            "console": { "type": "integer", "minimum": 0 },
+            "pageErrors": { "type": "integer", "minimum": 0 },
+            "failedRequests": { "type": "integer", "minimum": 0 },
+            "responses": { "type": "integer", "minimum": 0 },
+            "redirects": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "history": {
+          "type": "object",
+          "properties": {
+            "back": { "type": "boolean" },
+            "forward": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
