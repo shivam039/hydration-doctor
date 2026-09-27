@@ -1,8 +1,14 @@
 import { lstat, opendir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "espree";
+import { parse as parseTypeScript } from "@typescript-eslint/typescript-estree";
 
-const SOURCE_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs"]);
+const JAVASCRIPT_EXTENSIONS = new Set([".js", ".jsx", ".mjs", ".cjs"]);
+const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const SOURCE_EXTENSIONS = new Set([
+  ...JAVASCRIPT_EXTENSIONS,
+  ...TYPESCRIPT_EXTENSIONS,
+]);
 const DEFAULT_EXCLUDES = new Set([
   ".git",
   ".next",
@@ -79,37 +85,40 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
     const source = await readFile(filename, "utf8");
     let ast;
     try {
-      ast = parse(source, {
-        ecmaVersion: "latest",
-        sourceType: "module",
-        ecmaFeatures: { jsx: true },
-        loc: true,
-        comment: true,
-      });
+      ast = parseSource(source, filename);
     } catch (moduleError) {
-      try {
-        ast = parse(source, {
-          ecmaVersion: "latest",
-          sourceType: "script",
-          ecmaFeatures: { jsx: true },
-          loc: true,
-          comment: true,
-        });
-      } catch {
+      if (JAVASCRIPT_EXTENSIONS.has(path.extname(filename))) {
+        try {
+          ast = parse(source, {
+            ecmaVersion: "latest",
+            sourceType: "script",
+            ecmaFeatures: { jsx: true },
+            loc: true,
+            comment: true,
+          });
+        } catch {
+          ast = null;
+        }
+      } else {
+        ast = null;
+      }
+      if (!ast) {
         parseErrors.push({
           file: path.relative(root, filename),
           line: moduleError.lineNumber ?? null,
           column: moduleError.column ?? null,
-          message:
-            "Could not parse this JavaScript/JSX file; analysis skipped.",
+          message: `Could not parse this ${TYPESCRIPT_EXTENSIONS.has(path.extname(filename)) ? "TypeScript/TSX" : "JavaScript/JSX"} file; analysis skipped.`,
         });
         continue;
       }
     }
-    visit(ast, (node) => {
+    visit(ast, (node, parent) => {
       let rule;
       let evidence;
-      if (node.type === "MemberExpression") {
+      if (
+        node.type === "MemberExpression" &&
+        !(parent?.type === "MemberExpression" && parent.object === node)
+      ) {
         const chain = memberChain(node);
         if (
           /^(window|document|navigator|localStorage|sessionStorage)\./.test(
@@ -170,14 +179,32 @@ export async function analyzeStaticSources(rootDirectory, options = {}) {
   };
 }
 
-function visit(node, callback) {
+function parseSource(source, filename) {
+  if (TYPESCRIPT_EXTENSIONS.has(path.extname(filename))) {
+    return parseTypeScript(source, {
+      loc: true,
+      jsx: [".tsx"].includes(path.extname(filename)),
+      sourceType: "module",
+      filePath: filename,
+    });
+  }
+  return parse(source, {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    ecmaFeatures: { jsx: true },
+    loc: true,
+    comment: true,
+  });
+}
+
+function visit(node, callback, parent = null) {
   if (!node || typeof node !== "object") return;
-  if (typeof node.type === "string") callback(node);
+  if (typeof node.type === "string") callback(node, parent);
   for (const [key, value] of Object.entries(node)) {
     if (["loc", "range", "tokens", "comments"].includes(key)) continue;
     if (Array.isArray(value)) {
-      for (const child of value) visit(child, callback);
-    } else if (value && typeof value === "object") visit(value, callback);
+      for (const child of value) visit(child, callback, node);
+    } else if (value && typeof value === "object") visit(value, callback, node);
   }
 }
 
