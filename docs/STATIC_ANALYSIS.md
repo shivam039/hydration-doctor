@@ -2,6 +2,8 @@
 
 Run `npx hydration-doctor analyze --source ./src` to inspect JavaScript, JSX, TypeScript, and TSX source without starting the application. Use `--output report.json` to write an owner-only JSON file; existing output files are not overwritten. Findings are also available through the public `analyzeStaticSources(directory)` API.
 
+Use `--exclude 'src/generated/**,**/*.stories.tsx'` to skip matching source files. The API accepts the same patterns as `{ excludePatterns: [...] }`. Patterns are relative to the source root, use `/` separators, and support `*` for characters within one path segment, `**` for any number of path segments, and `?` for one character within a segment. Patterns are limited to 50 entries and 256 characters each. Absolute paths, `.`/`..` segments, backslashes, and bracket/brace syntax are rejected. Skipped source files increase `skipped.excluded` in the report. Defaults and filesystem traversal limits still apply.
+
 The analyzer currently reports these candidates:
 
 - Browser-global member access rooted at `window`, `document`, `navigator`, `localStorage`, or `sessionStorage`.

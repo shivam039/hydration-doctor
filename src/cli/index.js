@@ -87,7 +87,7 @@ function assertKnownOptions(command, options) {
       "updateBaselines",
       "viewport",
     ]),
-    analyze: new Set(["source", "output"]),
+    analyze: new Set(["source", "output", "exclude"]),
   }[command];
   const unknown = Object.keys(options).filter(
     (key) => key !== "positional" && !allowed?.has(key),
@@ -100,7 +100,11 @@ function assertKnownOptions(command, options) {
 
 async function analyzeCommand(options, io) {
   if (!options.source) throw new Error("analyze needs --source <directory>.");
-  const report = await analyzeStaticSources(options.source);
+  const report = await analyzeStaticSources(options.source, {
+    excludePatterns: options.exclude
+      ? options.exclude.split(",").map((pattern) => pattern.trim())
+      : [],
+  });
   const output = `${JSON.stringify(report, null, 2)}\n`;
   if (options.output) {
     await writeFile(options.output, output, { flag: "wx", mode: 0o600 });
