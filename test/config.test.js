@@ -143,6 +143,11 @@ test("parses CLI options and rejects missing option values", () => {
       reporter: "json",
     },
   );
+  assert.equal(
+    parseArgs(["scan", "--config", "config.js", "--update-baselines"])
+      .updateBaselines,
+    true,
+  );
   assert.throws(() => parseArgs(["scan", "--url"]), /requires a value/);
 });
 

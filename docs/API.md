@@ -16,6 +16,8 @@ The `hydration-doctor/config` subpath exports `defineConfig`, `loadConfig`, and 
 
 The scan result uses `schemaVersion: 1`. Reports contain route/scenario results and diagnostics; see [reading reports](REPORTS.md) for meaning and privacy limits. Additive report fields may appear within schema version 1. Consumers should tolerate unknown fields and should not depend on incidental diagnostic prose.
 
+For persistent visual comparison, set `routes[].visual.baseline` to a simple PNG filename and optionally set `baselineDir`. A normal scan reads but never writes that file; the CLI's `--update-baselines` flag explicitly creates or replaces configured baseline files. A missing baseline produces an inconclusive scan result.
+
 Hydration Doctor is currently version 0.1.0. The package API and configuration format are documented but not yet declared stable for 1.0 compatibility. Breaking changes may occur before a stable release.
 
 The export names and representative helper behavior are pinned by [`test/public-api.test.js`](../test/public-api.test.js). A fresh packed-package installation and browser scan is covered by `npm run test:consumer`.

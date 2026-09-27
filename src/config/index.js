@@ -136,6 +136,13 @@ export function validateConfig(input) {
           ) {
             errors.push(`routes[${index}].visual must be an object.`);
           } else {
+            if (route.visual.baseline !== undefined) {
+              try {
+                validateBaselineName(route.visual.baseline);
+              } catch (error) {
+                errors.push(`routes[${index}].${error.message}`);
+              }
+            }
             if (
               route.visual.maxDiffRatio !== undefined &&
               (typeof route.visual.maxDiffRatio !== "number" ||
@@ -350,6 +357,25 @@ export function validateConfig(input) {
     );
   }
   if (
+    input.baselineDir !== undefined &&
+    (typeof input.baselineDir !== "string" || !input.baselineDir.trim())
+  ) {
+    errors.push("baselineDir must be a non-empty directory path.");
+  }
+  if (
+    input.updateBaselines !== undefined &&
+    typeof input.updateBaselines !== "boolean"
+  ) {
+    errors.push("updateBaselines must be boolean.");
+  }
+  if (
+    input.updateBaselines &&
+    (!Array.isArray(input.routes) ||
+      !input.routes.some((route) => route?.visual?.baseline))
+  ) {
+    errors.push("updateBaselines requires at least one route visual.baseline.");
+  }
+  if (
     input.includeHtmlEvidence !== undefined &&
     typeof input.includeHtmlEvidence !== "boolean"
   ) {
@@ -396,6 +422,18 @@ export function validateConfig(input) {
       typeof route === "string" ? { path: route } : route,
     ),
   };
+}
+
+function validateBaselineName(filename) {
+  if (
+    typeof filename !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,123}\.png$/.test(filename) ||
+    filename.includes("..")
+  ) {
+    throw new Error(
+      "visual.baseline must be a simple PNG filename inside baselineDir.",
+    );
+  }
 }
 
 function validateHttpTarget(value, baseUrl, label, errors, allowExternal) {

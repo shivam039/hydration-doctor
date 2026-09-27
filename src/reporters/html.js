@@ -76,6 +76,15 @@ export function formatHtmlReport(report) {
               "Pixel differences highlighted in red",
             )
           : "",
+        result.visualBaselineDiff?.data
+          ? safePngImage(
+              result.visualBaselineDiff.data,
+              result.visualBaseline?.width,
+              result.visualBaseline?.height,
+              "Persistent visual baseline difference image",
+              "Persistent baseline differences highlighted in red",
+            )
+          : "",
       ].join("");
       const href = safeHref(displayUrl);
       return `<article class="scenario ${result.passed ? "passed" : "failed"}"><h2>${escapeHtml(result.scenario)} — ${result.passed ? "Pass" : "Fail"}</h2><p><code>${escapeHtml(displayRoute)}</code> · <a href="${escapeHtml(href)}">${escapeHtml(displayUrl)}</a></p>${details ? `<h3>Findings</h3><ul>${details}</ul>` : "<p>No findings recorded.</p>"}${visualImages}</article>`;

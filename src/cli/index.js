@@ -29,7 +29,8 @@ export function parseArgs(args) {
       letter.toUpperCase(),
     );
     if (inline !== undefined) parsed[key] = inline;
-    else if (["help", "version"].includes(key)) parsed[key] = true;
+    else if (["help", "version", "updateBaselines"].includes(key))
+      parsed[key] = true;
     else {
       const value = args[index + 1];
       if (!value || value.startsWith("--"))
@@ -82,6 +83,7 @@ function assertKnownOptions(command, options) {
       "concurrency",
       "retries",
       "output",
+      "updateBaselines",
     ]),
     analyze: new Set(["source", "output"]),
   }[command];
@@ -168,6 +170,7 @@ async function scanCommand(options, positional, io) {
       ? { concurrency: Number(options.concurrency) }
       : {}),
     ...(options.retries ? { retries: Number(options.retries) } : {}),
+    ...(options.updateBaselines ? { updateBaselines: true } : {}),
   });
   if (positional.length)
     throw new Error(`Unexpected scan argument: ${positional[0]}`);
@@ -210,10 +213,14 @@ async function scanCommand(options, positional, io) {
   }
   if (reporters.includes("json")) io.log(formatJsonReport(report));
   else io.log(formatTerminalReport(report));
-  return report.status === "passed" ? 0 : 1;
+  return report.status === "passed"
+    ? 0
+    : report.status === "inconclusive"
+      ? 2
+      : 1;
 }
 
-const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor analyze --source <directory> [--output <json-path>]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. Cross-origin requests are blocked unless allowlisted. Static analysis reports source candidates only and never changes files. For multiple scan reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
+const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>] [--update-baselines]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor analyze --source <directory> [--output <json-path>]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, baselineDir, concurrency, and retries. Set routes[].visual.baseline to a PNG filename to compare across runs; use --update-baselines to explicitly create or replace it. Missing baselines make the scan inconclusive. CLI values override config. Cross-origin requests are blocked unless allowlisted. Static analysis reports source candidates only and never changes files. For multiple scan reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup error or inconclusive scan.\n`;
 
 if (
   process.argv[1] &&

@@ -38,6 +38,17 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (
+      pathname === "/state-restoration" ||
+      pathname === "/state-restoration-broken"
+    ) {
+      const broken = pathname.endsWith("-broken");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><p id="preference"></p></main><script>const key='hd-fixture-preference';const loads=Number(sessionStorage.getItem('hd-loads')||'0')+1;sessionStorage.setItem('hd-loads',String(loads));if(!localStorage.getItem(key))localStorage.setItem(key,'blue');${broken ? "if(loads>1)localStorage.removeItem(key);" : ""}document.querySelector('#preference').textContent=localStorage.getItem(key)?'Preference restored':'Preference missing';</script></body></html>`,
+      );
+      return;
+    }
     if (pathname === "/missing-sidebar") {
       const hits = (renderingHits.get(pathname) ?? 0) + 1;
       renderingHits.set(pathname, hits);

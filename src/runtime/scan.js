@@ -1,6 +1,10 @@
 import { withBrowser, runPage } from "../browser/engine.js";
 import { compareSnapshots } from "../comparison/snapshots.js";
 import { compareVisualEvidence } from "../comparison/visual.js";
+import {
+  readVisualBaseline,
+  writeVisualBaseline,
+} from "../comparison/baselines.js";
 import { validateConfig } from "../config/index.js";
 import { redactSensitiveText, sanitizeUrl } from "../utils/redact.js";
 
@@ -182,12 +186,116 @@ export async function scan(config, overrides = {}) {
       }
     }
   }
+  for (const configuredRoute of effective.routes) {
+    if (!configuredRoute.visual?.baseline) continue;
+    const rawRoute = configuredRoute.path;
+    const route = redactSensitiveText(rawRoute);
+    const direct = results.find(
+      (result) => result.scenario === "direct" && result.route === route,
+    );
+    const refresh = results.find(
+      (result) => result.scenario === "refresh" && result.route === route,
+    );
+    const baselineEvidence = {};
+    if (!direct?.visualScreenshot?.complete) {
+      baselineEvidence.status = "inconclusive";
+      baselineEvidence.reason =
+        "Direct-load screenshot capture was incomplete.";
+    } else if (effective.updateBaselines) {
+      await writeVisualBaseline(
+        effective.baselineDir,
+        configuredRoute.visual.baseline,
+        Buffer.from(direct.visualScreenshot.data, "base64"),
+      );
+      baselineEvidence.status = "updated";
+      baselineEvidence.file = configuredRoute.visual.baseline;
+    } else {
+      const image = await readVisualBaseline(
+        effective.baselineDir,
+        configuredRoute.visual.baseline,
+      );
+      if (!image) {
+        baselineEvidence.status = "missing";
+        baselineEvidence.reason =
+          "Run `hydration-doctor scan --config <path> --update-baselines` to create this baseline explicitly.";
+      } else {
+        try {
+          const comparison = compareVisualEvidence(
+            { complete: true, data: image.toString("base64") },
+            direct.visualScreenshot,
+            configuredRoute.visual.maxDiffRatio ?? 0,
+          );
+          baselineEvidence.status = comparison.passed ? "matched" : "different";
+          baselineEvidence.changedPixels = comparison.changedPixels;
+          baselineEvidence.totalPixels = comparison.totalPixels;
+          baselineEvidence.changedPixelRatio = comparison.changedPixelRatio;
+          baselineEvidence.maxDiffRatio = comparison.maxDiffRatio;
+          baselineEvidence.width = comparison.width;
+          baselineEvidence.height = comparison.height;
+          if (comparison.diffImage) {
+            direct.visualBaselineDiff = {
+              mimeType: comparison.diffMimeType,
+              data: comparison.diffImage,
+            };
+          }
+        } catch {
+          baselineEvidence.status = "invalid";
+          baselineEvidence.reason =
+            "Baseline was not a readable PNG image; replace it with an explicit baseline update.";
+        }
+      }
+    }
+    const diagnostic = {
+      category:
+        baselineEvidence.status === "different"
+          ? "visual-baseline-difference"
+          : baselineEvidence.status === "missing" ||
+              baselineEvidence.status === "invalid" ||
+              baselineEvidence.status === "inconclusive"
+            ? "visual-baseline-incomplete"
+            : "visual-baseline-status",
+      confidence: "observed",
+      severity:
+        baselineEvidence.status === "different"
+          ? "error"
+          : baselineEvidence.status === "missing" ||
+              baselineEvidence.status === "invalid" ||
+              baselineEvidence.status === "inconclusive"
+            ? "warning"
+            : "info",
+      evidence: baselineEvidence,
+      explanation:
+        "Persistent visual baseline evidence describes pixel differences only and does not prove a hydration error.",
+      reproduction: direct?.reproduction ?? refresh?.reproduction,
+    };
+    for (const result of [direct, refresh].filter(Boolean)) {
+      result.visualBaseline = baselineEvidence;
+      result.diagnostics ??= [];
+      result.diagnostics.push(diagnostic);
+      if (baselineEvidence.status === "different") {
+        result.findings.push(
+          `Persistent visual baseline difference ratio ${baselineEvidence.changedPixelRatio} exceeded the ${baselineEvidence.maxDiffRatio} threshold.`,
+        );
+        result.passed = false;
+      }
+    }
+  }
+  const hasInconclusiveBaseline = results.some(
+    (result) =>
+      result.visualBaseline?.status === "missing" ||
+      result.visualBaseline?.status === "invalid" ||
+      result.visualBaseline?.status === "inconclusive",
+  );
   return {
     schemaVersion: 1,
     runId: `hd-${Date.now().toString(36)}`,
     browser: effective.browser,
     baseUrl: sanitizeUrl(effective.baseUrl),
-    status: results.every((result) => result.passed) ? "passed" : "failed",
+    status: results.some((result) => !result.passed)
+      ? "failed"
+      : hasInconclusiveBaseline
+        ? "inconclusive"
+        : "passed",
     results,
   };
 }

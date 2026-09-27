@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.2.0
 
-**Status:** Planned, implementation in progress  
+**Status:** Implementation complete, GitHub Actions matrix pending  
 **Audience:** React and Next.js application developers using Hydration Doctor in local development or CI  
 **Release intent:** Improve confidence in the existing 0.1.x diagnostic foundation without claiming stable APIs or broad framework coverage.
 
@@ -51,9 +51,9 @@ Hydration Doctor can scan direct loads and refreshes in development fixtures and
 
 Each slice is tracked in a GitHub issue and must be verified before that issue is closed:
 
-- **HD-NR-1:** production-build Next.js router verification (R1)
-- **HD-NR-2:** browser-storage restoration fixture and classification evidence (R2)
-- **HD-NR-3:** explicit persistent visual baseline workflow (R3)
+- **HD-NR-1:** production-build Next.js router verification (R1), [issue #23](https://github.com/shivam039/hydration-doctor/issues/23)
+- **HD-NR-2:** browser-storage restoration fixture and classification evidence (R2), [issue #24](https://github.com/shivam039/hydration-doctor/issues/24)
+- **HD-NR-3:** explicit persistent visual baseline workflow (R3), [issue #22](https://github.com/shivam039/hydration-doctor/issues/22)
 
 ## Verification and release decision
 

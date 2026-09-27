@@ -59,6 +59,37 @@ test("checks direct navigation and refresh and detects missing expected UI", asy
   );
 });
 
+test("reports storage restoration regression as observed missing UI", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    routes: [
+      { path: "/state-restoration", expectedText: "Preference restored" },
+      {
+        path: "/state-restoration-broken",
+        expectedText: "Preference restored",
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.equal(report.results[1].passed, true);
+  assert.equal(report.results[2].passed, true);
+  assert.equal(report.results[3].passed, false);
+  assert.equal(
+    report.results[3].diagnostics[0].category,
+    "missing-expected-ui",
+  );
+  assert.equal(report.results[3].diagnostics[0].confidence, "observed");
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /blue|localStorage|sessionStorage/,
+  );
+  assert.doesNotMatch(JSON.stringify(report), /confirmed-hydration/);
+});
+
 test("detects clicks before hydration and passes when gated on readiness", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());
