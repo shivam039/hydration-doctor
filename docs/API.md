@@ -8,7 +8,7 @@ The package exports the following entry points from `hydration-doctor`:
 - `loadConfig(path)` loads and validates a trusted JavaScript config module.
 - `validateConfig(config)` validates and normalizes configuration or throws an error.
 - `createReactDiagnosticsAdapter({ onRecoverableError })` formats React's public recoverable-error callback for an application-owned handler. It does not connect to the CLI automatically.
-- `formatTerminalReport(report)`, `formatJsonReport(report)`, and `formatHtmlReport(report)` format a report object.
+- `formatTerminalReport(report)`, `formatJsonReport(report)`, `formatHtmlReport(report)`, and `formatJUnitReport(report)` format a report object.
 - `DoctorError` and `getExitCode(error)` are helpers for callers building integrations around CLI-style results.
 - `redactSensitiveText(text)` and `sanitizeUrl(url)` provide the package's conservative redaction helpers.
 

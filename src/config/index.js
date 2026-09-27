@@ -399,12 +399,12 @@ export function validateConfig(input) {
           : [input.reporter];
   if (
     reporters.some(
-      (reporter) => !["text", "json", "html"].includes(reporter),
+      (reporter) => !["text", "json", "html", "junit"].includes(reporter),
     ) ||
     new Set(reporters).size !== reporters.length
   )
     errors.push(
-      "reporter must be text, json, html, or an array of distinct reporter names.",
+      "reporter must be text, json, html, junit, or an array of distinct reporter names.",
     );
   if (errors.length)
     throw new Error(`Invalid configuration:\n- ${errors.join("\n- ")}`);

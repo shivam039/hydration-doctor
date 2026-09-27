@@ -65,6 +65,10 @@ test("normalizes comma-separated and array reporter configuration", () => {
     validateConfig({ ...base, reporter: ["html", "json"] }).reporter,
     ["html", "json"],
   );
+  assert.equal(
+    validateConfig({ ...base, reporter: "junit" }).reporter,
+    "junit",
+  );
   assert.throws(
     () => validateConfig({ ...base, reporter: "html,html" }),
     /distinct reporter/,

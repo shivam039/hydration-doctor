@@ -590,6 +590,7 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
   t.after(() => rm(dir, { recursive: true, force: true }));
   const configPath = path.join(dir, "doctor.config.js");
   const htmlPath = path.join(dir, "report.html");
+  const junitPath = path.join(dir, "results.xml");
   const outputDir = path.join(dir, "all");
   await writeFile(
     configPath,
@@ -627,7 +628,26 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
         "scan",
         "--config",
         configPath,
-        "--reporter=html,json",
+        "--reporter=junit",
+        "--output",
+        junitPath,
+      ],
+      io,
+    ),
+    0,
+  );
+  assert.match(
+    await readFile(junitPath, "utf8"),
+    /<testsuite name="hydration-doctor"/,
+  );
+  assert.equal((await stat(junitPath)).mode & 0o777, 0o600);
+  assert.equal(
+    await main(
+      [
+        "scan",
+        "--config",
+        configPath,
+        "--reporter=html,json,junit",
         "--output",
         outputDir,
       ],
@@ -636,9 +656,17 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
     0,
   );
   const names = await readdir(outputDir);
-  assert.equal(names.length, 2);
+  assert.equal(names.length, 3);
   assert.ok(names.some((name) => name.endsWith(".html")));
   assert.ok(names.some((name) => name.endsWith(".json")));
+  assert.ok(names.some((name) => name.endsWith(".xml")));
+  const combinedJunitPath = path.join(
+    outputDir,
+    names.find((name) => name.endsWith(".xml")),
+  );
+  const junitXml = await readFile(combinedJunitPath, "utf8");
+  assert.match(junitXml, /<testsuite name="hydration-doctor" tests="2"/);
+  assert.equal((await stat(combinedJunitPath)).mode & 0o777, 0o600);
   await assert.rejects(
     readFile(htmlPath).then(() =>
       main(

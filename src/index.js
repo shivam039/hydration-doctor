@@ -6,6 +6,7 @@ export { DoctorError, getExitCode } from "./utils/errors.js";
 export { redactSensitiveText, sanitizeUrl } from "./utils/redact.js";
 export {
   formatHtmlReport,
+  formatJUnitReport,
   formatJsonReport,
   formatTerminalReport,
 } from "./reporters/index.js";

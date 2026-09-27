@@ -8,6 +8,7 @@ import { scan } from "../runtime/scan.js";
 import { withBrowser } from "../browser/engine.js";
 import {
   formatHtmlReport,
+  formatJUnitReport,
   formatJsonReport,
   formatTerminalReport,
 } from "../reporters/index.js";
@@ -184,7 +185,9 @@ async function scanCommand(options, positional, io) {
     if (reporters.length > 1) {
       await mkdir(options.output, { recursive: true, mode: 0o700 });
       for (const reporter of reporters.filter((item) => item !== "text")) {
-        const extension = reporter === "json" ? "json" : "html";
+        const extension = { json: "json", html: "html", junit: "xml" }[
+          reporter
+        ];
         await writeFile(
           path.join(
             options.output,
@@ -192,7 +195,9 @@ async function scanCommand(options, positional, io) {
           ),
           reporter === "json"
             ? `${formatJsonReport(report)}\n`
-            : formatHtmlReport(report),
+            : reporter === "html"
+              ? formatHtmlReport(report)
+              : formatJUnitReport(report),
           { flag: "wx", mode: 0o600 },
         );
       }
@@ -203,6 +208,11 @@ async function scanCommand(options, positional, io) {
       });
     } else if (reporters[0] === "json") {
       await writeFile(options.output, `${formatJsonReport(report)}\n`, {
+        flag: "wx",
+        mode: 0o600,
+      });
+    } else if (reporters[0] === "junit") {
+      await writeFile(options.output, formatJUnitReport(report), {
         flag: "wx",
         mode: 0o600,
       });
@@ -229,7 +239,7 @@ function parseViewport(value) {
   return { width: Number(match[1]), height: Number(match[2]) };
 }
 
-const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--viewport <width>x<height>] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>] [--update-baselines]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit] [--viewport <width>x<height>]\n  hydration-doctor analyze --source <directory> [--output <json-path>]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, baselineDir, concurrency, and retries. Set routes[].visual.baseline to a PNG filename to compare across runs; use --update-baselines to explicitly create or replace it. Missing baselines make the scan inconclusive. CLI values override config. Cross-origin requests are blocked unless allowlisted. Static analysis reports source candidates only and never changes files. For multiple scan reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup error or inconclusive scan.\n`;
+const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--viewport <width>x<height>] [--reporter text|json|html|junit|text,json,html,junit] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>] [--update-baselines]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit] [--viewport <width>x<height>]\n  hydration-doctor analyze --source <directory> [--output <json-path>]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, baselineDir, concurrency, and retries. Set routes[].visual.baseline to a PNG filename to compare across runs; use --update-baselines to explicitly create or replace it. Missing baselines make the scan inconclusive. CLI values override config. Cross-origin requests are blocked unless allowlisted. Static analysis reports source candidates only and never changes files. For multiple scan reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup error or inconclusive scan.\n`;
 
 if (
   process.argv[1] &&

@@ -24,3 +24,4 @@ export function formatJsonReport(report) {
 }
 
 export { formatHtmlReport } from "./html.js";
+export { formatJUnitReport } from "./junit.js";
