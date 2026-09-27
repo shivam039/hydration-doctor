@@ -56,6 +56,62 @@ test("reports bounded JS/JSX candidates with exact locations and excludes depend
   );
 });
 
+test("analyzes TypeScript and TSX syntax without flagging type annotations as parse errors", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-ts-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "App.ts"),
+    [
+      "interface User { name: string }",
+      "export function getName(user: User): string {",
+      "  return window.location.href + Date.now() + user.name;",
+      "}",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(root, "Widget.tsx"),
+    [
+      "type Props = { locale: string };",
+      "export const Widget = (props: Props) => <p>{navigator.language} {Math.random()}</p>;",
+    ].join("\n"),
+  );
+  await writeFile(path.join(root, "Broken.ts"), "const answer: = 42;\n");
+
+  const report = await analyzeStaticSources(root);
+  assert.equal(report.filesScanned, 3);
+  assert.deepEqual(
+    report.findings.map(({ file, line, rule }) => ({ file, line, rule })),
+    [
+      {
+        file: "App.ts",
+        line: 3,
+        rule: "browser-global-during-render-candidate",
+      },
+      {
+        file: "App.ts",
+        line: 3,
+        rule: "nondeterministic-value-candidate",
+      },
+      {
+        file: "Widget.tsx",
+        line: 2,
+        rule: "browser-global-during-render-candidate",
+      },
+      {
+        file: "Widget.tsx",
+        line: 2,
+        rule: "nondeterministic-value-candidate",
+      },
+    ],
+  );
+  assert.equal(report.parseErrors.length, 1);
+  assert.deepEqual(
+    { file: report.parseErrors[0].file, line: report.parseErrors[0].line },
+    { file: "Broken.ts", line: 1 },
+  );
+  assert.match(report.parseErrors[0].message, /TypeScript/);
+});
+
 test("analyze command returns candidate findings as JSON without failing the scan exit code", async (t) => {
   const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-analyze-"));
   t.after(() => rm(root, { recursive: true, force: true }));
