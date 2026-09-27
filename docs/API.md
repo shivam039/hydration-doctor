@@ -3,6 +3,7 @@
 The package exports the following entry points from `hydration-doctor`:
 
 - `scan(config, overrides?)` validates the config, runs configured browser scenarios, and returns the JSON report object.
+- `analyzeStaticSources(directory, options?)` parses bounded JS/JSX files and returns source-pattern candidates without changing files.
 - `defineConfig(config)` is an identity helper for typed/config-editor-friendly config files.
 - `loadConfig(path)` loads and validates a trusted JavaScript config module.
 - `validateConfig(config)` validates and normalizes configuration or throws an error.

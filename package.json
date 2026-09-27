@@ -33,6 +33,7 @@
     "check": "npm run lint && npm test && npm run format:check"
   },
   "dependencies": {
+    "espree": "^10.4.0",
     "playwright": "^1.55.0"
   },
   "devDependencies": {

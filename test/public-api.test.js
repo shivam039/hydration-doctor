@@ -14,6 +14,7 @@ import {
 test("pins documented package and config entry-point exports", () => {
   for (const name of [
     "scan",
+    "analyzeStaticSources",
     "defineConfig",
     "loadConfig",
     "validateConfig",

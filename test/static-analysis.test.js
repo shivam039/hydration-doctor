@@ -1,0 +1,82 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { analyzeStaticSources } from "../src/analysis/static.js";
+import { main } from "../src/cli/index.js";
+
+test("reports bounded JS/JSX candidates with exact locations and excludes dependencies", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-static-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "src"));
+  await mkdir(path.join(root, "node_modules", "sample"), { recursive: true });
+  await writeFile(
+    path.join(root, "src", "App.jsx"),
+    'export function App() {\n  const width = window.innerWidth;\n  return <span>{Date.now()} {width}</span>;\n}\n// document.cookie and Math.random() in comments are ignored\nconst note = "Math.random()";\n',
+  );
+  await writeFile(
+    path.join(root, "node_modules", "sample", "ignored.js"),
+    "const width = window.innerWidth;\n",
+  );
+  await writeFile(path.join(root, "src", "broken.js"), "const = nope;\n");
+
+  const report = await analyzeStaticSources(root);
+  assert.equal(report.schemaVersion, 1);
+  assert.equal(report.filesScanned, 2);
+  assert.deepEqual(
+    report.findings.map(({ rule, file, line, column, confidence }) => ({
+      rule,
+      file,
+      line,
+      column,
+      confidence,
+    })),
+    [
+      {
+        rule: "browser-global-during-render-candidate",
+        file: "src/App.jsx",
+        line: 2,
+        column: 17,
+        confidence: "candidate",
+      },
+      {
+        rule: "nondeterministic-value-candidate",
+        file: "src/App.jsx",
+        line: 3,
+        column: 17,
+        confidence: "candidate",
+      },
+    ],
+  );
+  assert.equal(report.parseErrors[0].file, "src/broken.js");
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /ignored\.js|innerWidth|document\.cookie/,
+  );
+});
+
+test("analyze command returns candidate findings as JSON without failing the scan exit code", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "hydration-doctor-analyze-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "App.js"),
+    "const language = navigator.language;\n",
+  );
+  let output = "";
+  const exitCode = await main(["analyze", "--source", root], {
+    log(value) {
+      output = value;
+    },
+    error(value) {
+      throw new Error(value);
+    },
+  });
+  assert.equal(exitCode, 0);
+  const report = JSON.parse(output);
+  assert.equal(
+    report.findings[0].rule,
+    "browser-global-during-render-candidate",
+  );
+  assert.equal(report.findings[0].line, 1);
+});

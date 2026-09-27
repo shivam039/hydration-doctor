@@ -12,6 +12,7 @@ import {
   formatTerminalReport,
 } from "../reporters/index.js";
 import { redactSensitiveText } from "../utils/redact.js";
+import { analyzeStaticSources } from "../analysis/static.js";
 
 const VERSION = "0.1.0";
 
@@ -57,6 +58,7 @@ export async function main(args = process.argv.slice(2), io = console) {
     if (command === "init") return await init(options, io);
     if (command === "doctor") return await doctor(options, io);
     if (command === "scan") return await scanCommand(options, rest, io);
+    if (command === "analyze") return await analyzeCommand(options, io);
     throw new Error(
       `Unknown command: ${command ?? "(none)"}. Run hydration-doctor --help.`,
     );
@@ -81,6 +83,7 @@ function assertKnownOptions(command, options) {
       "retries",
       "output",
     ]),
+    analyze: new Set(["source", "output"]),
   }[command];
   const unknown = Object.keys(options).filter(
     (key) => key !== "positional" && !allowed?.has(key),
@@ -89,6 +92,17 @@ function assertKnownOptions(command, options) {
     throw new Error(
       `Unknown option(s) for ${command ?? "command"}: ${unknown.join(", ")}.`,
     );
+}
+
+async function analyzeCommand(options, io) {
+  if (!options.source) throw new Error("analyze needs --source <directory>.");
+  const report = await analyzeStaticSources(options.source);
+  const output = `${JSON.stringify(report, null, 2)}\n`;
+  if (options.output) {
+    await writeFile(options.output, output, { flag: "wx", mode: 0o600 });
+    io.log(`Static analysis report written to ${options.output}.`);
+  } else io.log(output.trimEnd());
+  return 0;
 }
 
 async function init(options, io) {
@@ -199,7 +213,7 @@ async function scanCommand(options, positional, io) {
   return report.status === "passed" ? 0 : 1;
 }
 
-const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. Cross-origin requests are blocked unless allowlisted. For multiple reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
+const helpText = `Hydration Doctor ${VERSION}\n\nUsage:\n  hydration-doctor init [--config <path>]\n  hydration-doctor scan --config <path> [--browser chromium|firefox|webkit] [--reporter text|json|html|text,json,html] [--timeout <ms>] [--concurrency <n>] [--retries <n>] [--output <path>]\n  hydration-doctor scan --url <url> [--route <path>] [--browser chromium|firefox|webkit]\n  hydration-doctor analyze --source <directory> [--output <json-path>]\n  hydration-doctor doctor [--browser chromium|firefox|webkit]\n  hydration-doctor --help\n  hydration-doctor --version\n\nConfig is an ES module exporting baseUrl, routes, navigation, allowOrigins, timeout, browser, reporter, viewport, locale, timezoneId, colorScheme, reducedMotion, device, storageState, concurrency, and retries. CLI values override config. Cross-origin requests are blocked unless allowlisted. Static analysis reports source candidates only and never changes files. For multiple scan reporters, --output names a directory; single-file reporters write to the exact output path. Exit codes: 0 pass, 1 verified scenario failure, 2 setup/configuration/execution error.\n`;
 
 if (
   process.argv[1] &&

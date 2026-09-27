@@ -61,6 +61,8 @@ CLI values for browser, reporter, timeout, concurrency, and retries override con
 - `includeHtmlEvidence`: opt-in to include a redacted initial document HTML excerpt in JSON evidence. Off by default; capture is limited to uncompressed responses with a known size of at most 256 KiB. Oversized, compressed, or streaming responses are summarized without storing their body.
 - `reporter`: `text`, `json`, or `html`, or an array/comma-separated combination such as `html,json` (default `text`).
 
+Optional source candidates can be inspected separately with `npx hydration-doctor analyze --source ./src`. The analyzer reports JS/JSX browser-global reads, `Date.now()`/`Math.random()`, and `process.env` references with file/line/column. These are candidate patterns, not runtime errors or proof of a hydration failure. It skips common generated/dependency directories, caps input to 500 files of at most 1 MiB each, and never edits source files. See [static analysis details](docs/STATIC_ANALYSIS.md).
+
 Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML and JSON report files are created with owner-only permissions where the operating system supports them. Snapshot text/attributes and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
 
 ## Guides
@@ -70,6 +72,7 @@ Configuration files are executable trusted JavaScript modules. Do not load an un
 - [Release readiness assessment](docs/RELEASE_READINESS.md)
 - [Troubleshooting browser, route, and snapshot checks](docs/TROUBLESHOOTING.md)
 - [Automated fixture inventory and evidence](docs/FIXTURE_INVENTORY.md)
+- [Optional static analysis and its limits](docs/STATIC_ANALYSIS.md)
 - [Contributing and running the checks](CONTRIBUTING.md)
 - [Master epic and implementation status](docs/roadmap/MASTER_EPIC.md)
 
