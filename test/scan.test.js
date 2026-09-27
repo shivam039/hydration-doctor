@@ -136,6 +136,40 @@ test("accepts explicitly expected empty data and classifies a violated data asse
   );
 });
 
+test("fills and submits a form without copying entered values into evidence", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/hydration-form",
+        interactions: [
+          {
+            type: "fill",
+            selector: "#name",
+            value: "Ada",
+            expect: { selector: "#name" },
+          },
+          {
+            type: "submit",
+            selector: "#submit",
+            expect: { text: "Thank you, Ada" },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "fill", passed: true },
+    { index: 2, type: "submit", passed: true },
+  ]);
+  assert.doesNotMatch(JSON.stringify(report), /Ada/);
+});
+
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
   const { server, baseUrl } = await startNavigationFixture({
     clientMode: "full-document",

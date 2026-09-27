@@ -69,6 +69,7 @@ Configuration files are executable trusted JavaScript modules. Do not load an un
 - [Public API and compatibility status](docs/API.md)
 - [Release readiness assessment](docs/RELEASE_READINESS.md)
 - [Troubleshooting browser, route, and snapshot checks](docs/TROUBLESHOOTING.md)
+- [Automated fixture inventory and evidence](docs/FIXTURE_INVENTORY.md)
 - [Contributing and running the checks](CONTRIBUTING.md)
 - [Master epic and implementation status](docs/roadmap/MASTER_EPIC.md)
 

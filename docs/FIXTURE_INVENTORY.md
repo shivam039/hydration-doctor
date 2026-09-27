@@ -1,0 +1,17 @@
+# Automated fixture inventory
+
+Run `npm run check` for deterministic configuration, CLI, integration, and real-Chromium tests. The CI workflow installs Chromium and runs the suite on Node.js 20, 22, and 24. `npm run test:consumer` separately installs the packed tarball into a clean prefix and scans a local HTTP fixture with the installed CLI.
+
+| Capability                                                                                                       | Deterministic fixture/test evidence                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Direct load, refresh, selector/text assertions, redirect, SPA navigation, full-document navigation, back/forward | `fixtures/navigation-app.js`; “checks direct navigation and refresh…”, redirect, and client-navigation tests in `test/scan.test.js` |
+| Pre-hydration interaction failure and readiness-gated recovery                                                   | `/hydration-button-broken`, `/hydration-button-gated`; hydration interaction tests in `test/scan.test.js`                           |
+| Fill and submit actions, with entered values omitted from output                                                 | `/hydration-form`; “fills and submits a form…” in `test/scan.test.js`                                                               |
+| Empty data expected state and violated expected state                                                            | `/empty-data`; empty-data assertion test in `test/scan.test.js`                                                                     |
+| React hydration mismatch versus healthy and generic runtime errors                                               | `/hydration-warning`, `/react-healthy`, `/generic-console-error`; React classification test in `test/scan.test.js`                  |
+| SSR/client and direct/refresh DOM checkpoint differences; ignored volatile subtree                               | `/varying-render`, `/dynamic-render`; structural comparison tests in `test/scan.test.js`                                            |
+| Failed/blocked cross-origin requests, compressed/large/bounded evidence, and event limits                        | Dedicated security fixtures and tests in `test/scan.test.js`                                                                        |
+| CLI init, doctor, direct URL, exit codes, report formats, and overwrite protection                               | CLI/config tests in `test/config.test.js` and `test/scan.test.js`                                                                   |
+| URL redaction, HTML escaping, private file modes, and bounded output                                             | Config, reporter, and scan tests under `test/`                                                                                      |
+
+Framework-specific Next.js behavior, screenshots/visual diffs, and AST-based findings are not advertised as implemented and have no passing fixture evidence yet. See the [master epic roadmap](roadmap/MASTER_EPIC.md) and [release readiness assessment](RELEASE_READINESS.md) for remaining coverage gaps.

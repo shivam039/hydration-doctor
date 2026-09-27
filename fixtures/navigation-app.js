@@ -49,6 +49,13 @@ export async function startNavigationFixture({
       );
       return;
     }
+    if (pathname === "/hydration-form") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        '<html><body><main><form><label>Name <input id="name" name="name"></label><button id="submit" type="submit">Submit</button></form><p id="result">Waiting</p></main><script>document.querySelector("form").addEventListener("submit",event=>{event.preventDefault();document.querySelector("#result").textContent="Thank you, "+document.querySelector("#name").value})</script></body></html>',
+      );
+      return;
+    }
     if (
       pathname === "/expected-redirect" ||
       pathname === "/unexpected-redirect"
