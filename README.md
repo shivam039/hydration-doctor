@@ -73,6 +73,7 @@ Configuration files are executable trusted JavaScript modules. Do not load an un
 - [Release readiness assessment](docs/RELEASE_READINESS.md)
 - [Troubleshooting browser, route, and snapshot checks](docs/TROUBLESHOOTING.md)
 - [Automated fixture inventory and evidence](docs/FIXTURE_INVENTORY.md)
+- [React and Next.js compatibility evidence](docs/FRAMEWORK_COMPATIBILITY.md)
 - [Optional static analysis and its limits](docs/STATIC_ANALYSIS.md)
 - [Contributing and running the checks](CONTRIBUTING.md)
 - [Master epic and implementation status](docs/roadmap/MASTER_EPIC.md)

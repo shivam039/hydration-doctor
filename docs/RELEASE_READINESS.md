@@ -11,7 +11,7 @@
 
 ## Release blockers
 
-- No tested Next.js App Router or Pages Router fixture matrix.
+- Next.js compatibility currently covers one 15.5.x development fixture for both routers; production builds and advanced routing/rendering behaviors remain unverified.
 - Visual comparison currently uses an in-run direct-load screenshot as the baseline; persistent cross-release baseline management and a desktop/mobile fixture matrix remain unimplemented.
 - AST analysis currently covers only documented JS/JSX candidate patterns; it does not understand TypeScript, execution timing, or a complete set of hydration hazards.
 - Continuous fixture coverage does not yet cover all capabilities named in the master epic, including streaming, delayed imports, auth/storage restoration, and broader state races.
