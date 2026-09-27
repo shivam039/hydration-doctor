@@ -55,9 +55,7 @@ export function classifyScenarioFindings(messages) {
       category = "unexpected-redirect";
     else if (/readiness selector/i.test(message))
       category = "loading-readiness-failure";
-    else if (
-      /selector .* failed|Expected visible text was not found/i.test(message)
-    )
+    else if (/selector .* failed|expected-text assertion failed/i.test(message))
       category = "missing-expected-ui";
     else if (/HTTP \d+|request failed/i.test(message))
       category = "failed-network-dependency";

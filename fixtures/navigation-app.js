@@ -3,6 +3,7 @@ import { once } from "node:events";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
+import { gzipSync } from "node:zlib";
 
 const reactRoot = dirname(fileURLToPath(import.meta.resolve("react")));
 const reactDomRoot = dirname(fileURLToPath(import.meta.resolve("react-dom")));
@@ -11,7 +12,10 @@ const frameworkBundles = new Map([
   ["/react-dom.js", resolve(reactDomRoot, "umd/react-dom.development.js")],
 ]);
 
-export async function startNavigationFixture({ clientMode = "spa" } = {}) {
+export async function startNavigationFixture({
+  clientMode = "spa",
+  externalResourceUrl,
+} = {}) {
   let refreshOnlyHits = 0;
   let flakyHits = 0;
   const renderingHits = new Map();
@@ -40,6 +44,32 @@ export async function startNavigationFixture({ clientMode = "spa" } = {}) {
       response.end(
         "<html><body><main><h1>Client view</h1></main></body></html>",
       );
+      return;
+    }
+    if (pathname === "/external-resource") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>External resource fixture</main><script src="${externalResourceUrl}"></script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/console-flood") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>Console fixture</main><script>for(let i=0;i<75;i++)console.error('fixture error '+i)</script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/compressed-evidence") {
+      const body = gzipSync(
+        "<html><body><main>Compressed fixture</main></body></html>",
+      );
+      response.writeHead(200, {
+        "content-type": "text/html",
+        "content-encoding": "gzip",
+        "content-length": body.length,
+      });
+      response.end(body);
       return;
     }
     if (pathname === "/refresh-only") {

@@ -13,7 +13,7 @@ test("HTML reports escape untrusted scenario and diagnostic content", () => {
         scenario: "<script>alert(1)</script>",
         passed: false,
         route: "/<img src=x>",
-        url: "https://example.test/<svg onload=alert(1)>",
+        url: "javascript:alert(1)",
         findings: ["<script>injected</script>"],
         diagnostics: [
           { category: "<iframe>", evidence: { body: "</pre><script>" } },
@@ -24,4 +24,26 @@ test("HTML reports escape untrusted scenario and diagnostic content", () => {
   assert.doesNotMatch(html, /<script>|<img |<svg |<iframe>/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.match(html, /&lt;\/pre&gt;&lt;script&gt;/);
+  assert.match(html, /href="#">javascript:alert\(1\)<\/a>/);
+});
+
+test("HTML report URLs redact credentials and secret query parameters", () => {
+  const html = formatHtmlReport({
+    runId: "run-2",
+    status: "passed",
+    browser: "chromium",
+    baseUrl: "https://user:password@example.test/?api_key=secret",
+    results: [
+      {
+        scenario: "direct",
+        passed: true,
+        route: "/",
+        url: "https://user:password@example.test/?access_token=secret",
+        findings: [],
+        diagnostics: [],
+      },
+    ],
+  });
+  assert.doesNotMatch(html, /password|api_key=secret|access_token=secret/);
+  assert.match(html, /%5BREDACTED%5D/);
 });

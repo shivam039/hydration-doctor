@@ -1,11 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { scan } from "../src/runtime/scan.js";
 import { startNavigationFixture } from "../fixtures/navigation-app.js";
 import { main } from "../src/cli/index.js";
+import { createServer } from "node:http";
+import { once } from "node:events";
 
 test("checks direct navigation and refresh and detects missing expected UI", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
@@ -37,10 +46,16 @@ test("checks direct navigation and refresh and detects missing expected UI", asy
     forward: true,
   });
   assert.equal(report.status, "failed");
-  assert.match(report.results[5].findings[0], /aside/);
+  assert.match(
+    report.results[5].findings[0],
+    /configured expected UI selector/,
+  );
   assert.equal(report.results[7].passed, true);
   assert.equal(report.results[8].passed, false);
-  assert.match(report.results[8].findings[0], /main/);
+  assert.match(
+    report.results[8].findings[0],
+    /configured expected UI selector/,
+  );
 });
 
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
@@ -97,6 +112,93 @@ test("reports an unexpected redirect as a navigation inconsistency", async (t) =
   });
   assert.equal(report.status, "failed");
   assert.match(report.results[0].findings[0], /Unexpected redirect/);
+});
+
+test("blocks cross-origin subresource requests unless their origin is allowlisted", async (t) => {
+  let hits = 0;
+  const externalServer = createServer((request, response) => {
+    hits += 1;
+    response.writeHead(200, { "content-type": "text/javascript" });
+    response.end("window.externalFixtureLoaded = true;");
+  });
+  externalServer.listen(0, "127.0.0.1");
+  await once(externalServer, "listening");
+  t.after(() => externalServer.close());
+  const externalOrigin = `http://127.0.0.1:${externalServer.address().port}`;
+  const { server, baseUrl } = await startNavigationFixture({
+    externalResourceUrl: `${externalOrigin}/probe.js`,
+  });
+  t.after(() => server.close());
+  const baseConfig = {
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [{ path: "/external-resource", expectedSelector: "main" }],
+  };
+  const blocked = await scan(baseConfig);
+  assert.equal(hits, 0);
+  assert.ok(
+    blocked.results[0].events.failedRequests.some((request) =>
+      request.url.startsWith(externalOrigin),
+    ),
+  );
+
+  const allowed = await scan({ ...baseConfig, allowOrigins: [externalOrigin] });
+  assert.ok(hits >= 2);
+  assert.equal(
+    allowed.results[0].events.failedRequests.some((request) =>
+      request.url.startsWith(externalOrigin),
+    ),
+    false,
+  );
+});
+
+test("caps collected browser events and reports the dropped count", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [{ path: "/console-flood", expectedSelector: "main" }],
+  });
+  const events = report.results[0].events;
+  assert.equal(events.console.length, 50);
+  assert.equal(events.dropped.console, 25);
+});
+
+test("does not copy compressed response bodies into evidence", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    includeHtmlEvidence: true,
+    routes: [{ path: "/compressed-evidence", expectedSelector: "main" }],
+  });
+  const evidence = report.results[0].documentEvidence;
+  assert.equal(evidence.complete, false);
+  assert.equal(evidence.html, undefined);
+  assert.match(evidence.captureNote, /Compressed document bodies/);
+});
+
+test("omits configured assertion values from failure output", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 500,
+    routes: [{ path: "/client", expectedText: "private patient phrase" }],
+  });
+  assert.equal(report.status, "failed");
+  assert.doesNotMatch(JSON.stringify(report), /private patient phrase/);
+  assert.ok(
+    report.results[0].diagnostics.some(
+      (diagnostic) => diagnostic.category === "missing-expected-ui",
+    ),
+  );
 });
 
 test("keeps an intermittent failure failed after a successful retry", async (t) => {
@@ -250,6 +352,7 @@ test("scan CLI writes HTML and multiple self-contained reports without overwriti
     await readFile(htmlPath, "utf8"),
     /<title>Hydration Doctor report: passed<\/title>/,
   );
+  assert.equal((await stat(htmlPath)).mode & 0o777, 0o600);
   assert.equal(
     await main(
       [

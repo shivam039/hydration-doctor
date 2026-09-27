@@ -1,3 +1,5 @@
+import { sanitizeUrl } from "../utils/redact.js";
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => {
     const replacements = {
@@ -11,9 +13,22 @@ function escapeHtml(value) {
   });
 }
 
+function safeHref(value) {
+  try {
+    const url = new URL(String(value));
+    return ["http:", "https:"].includes(url.protocol)
+      ? sanitizeUrl(url.href)
+      : "#";
+  } catch {
+    return "#";
+  }
+}
+
 export function formatHtmlReport(report) {
   const rows = report.results
     .map((result) => {
+      const displayUrl = sanitizeUrl(result.url ?? "");
+      const displayRoute = sanitizeUrl(result.route ?? "");
       const details = [
         ...result.findings.map((finding) => `<li>${escapeHtml(finding)}</li>`),
         ...result.diagnostics.map(
@@ -21,7 +36,8 @@ export function formatHtmlReport(report) {
             `<li><strong>${escapeHtml(diagnostic.category)}</strong>: <pre>${escapeHtml(JSON.stringify(diagnostic.evidence, null, 2))}</pre></li>`,
         ),
       ].join("");
-      return `<article class="scenario ${result.passed ? "passed" : "failed"}"><h2>${escapeHtml(result.scenario)} — ${result.passed ? "Pass" : "Fail"}</h2><p><code>${escapeHtml(result.route ?? "")}</code> · <a href="${escapeHtml(result.url)}">${escapeHtml(result.url)}</a></p>${details ? `<h3>Findings</h3><ul>${details}</ul>` : "<p>No findings recorded.</p>"}</article>`;
+      const href = safeHref(displayUrl);
+      return `<article class="scenario ${result.passed ? "passed" : "failed"}"><h2>${escapeHtml(result.scenario)} — ${result.passed ? "Pass" : "Fail"}</h2><p><code>${escapeHtml(displayRoute)}</code> · <a href="${escapeHtml(href)}">${escapeHtml(displayUrl)}</a></p>${details ? `<h3>Findings</h3><ul>${details}</ul>` : "<p>No findings recorded.</p>"}</article>`;
     })
     .join("\n");
   const title = `Hydration Doctor report: ${report.status}`;
@@ -42,7 +58,7 @@ export function formatHtmlReport(report) {
   </style>
 </head>
 <body>
-  <header><h1>Hydration Doctor</h1><p>Run <code>${escapeHtml(report.runId)}</code> · ${escapeHtml(report.status)} · ${escapeHtml(report.browser)}</p><p>Base URL: <code>${escapeHtml(report.baseUrl)}</code></p></header>
+  <header><h1>Hydration Doctor</h1><p>Run <code>${escapeHtml(report.runId)}</code> · ${escapeHtml(report.status)} · ${escapeHtml(report.browser)}</p><p>Base URL: <code>${escapeHtml(sanitizeUrl(report.baseUrl ?? ""))}</code></p></header>
   <main><section class="summary" aria-label="Run summary"><h2>Scenario results</h2><p>${report.results.filter((item) => item.passed).length} of ${report.results.length} passed.</p></section>${rows}</main>
 </body>
 </html>`;
