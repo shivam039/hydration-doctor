@@ -4,6 +4,25 @@
 
 See the [changelog](CHANGELOG.md) for repository increments and the [release process](docs/RELEASING.md) for publication requirements.
 
+## Capability status
+
+These are verified fixture targets, not blanket compatibility guarantees.
+
+| Area            | Verified                                                                                                  | Not yet verified                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Runtime         | Node.js 20, 22, and 24 in CI                                                                              | Other Node.js lines                                                                           |
+| React / Next.js | React 18.3.1 and Next.js 15.5.26; App and Pages Router direct/refresh and production `<Link>` transitions | React 19, other Next.js lines, middleware/rewrites, shallow routing, and broader RSC behavior |
+| Browsers        | Chromium full suite; Chromium, Firefox, and WebKit targeted smoke                                         | Full framework/streaming suite on Firefox or WebKit                                           |
+| Visual profiles | Chromium viewport profiles at desktop, tablet, and emulated iPhone SE sizes                               | Cross-browser visual baselines and wider device catalog                                       |
+| Static analysis | Documented JS/JSX and TS/TSX candidates, exact rule suppressions, JSON/SARIF                              | Execution timing, complete hydration hazard coverage, and automatic root-cause proof          |
+| Auth and state  | Local storage and expected anonymous/authenticated fixture flows                                          | Real identity providers and production identity integrations                                  |
+
+See [framework compatibility evidence](docs/FRAMEWORK_COMPATIBILITY.md), [fixture inventory](docs/FIXTURE_INVENTORY.md), and [release readiness](docs/RELEASE_READINESS.md) for test links and remaining gaps.
+
+## Public API and configuration maturity
+
+Public JavaScript APIs and configuration are experimental and may break between 0.x versions. Report schema v1 defines the current JSON structure, while diagnostic wording and capabilities can grow. No migration guarantee applies before 1.0; see the [migration guide](docs/MIGRATING.md).
+
 Hydration Doctor is an open-source CLI for checking route behavior across direct navigation, hard refresh, and configured client-side navigation. It is an early implementation: Phase 1 checks navigation and expected UI. It does not yet prove an arbitrary DOM difference is a hydration mismatch.
 
 ## Quick start

@@ -74,6 +74,39 @@ test("public error and JSON report helpers preserve explicit status", () => {
   );
 });
 
+test("public config API preserves documented route viewport and device profiles", () => {
+  const config = ConfigApi.validateConfig({
+    baseUrl: "http://localhost:3000",
+    routes: [
+      { path: "/desktop", viewport: { width: 1280, height: 800 } },
+      { path: "/mobile", device: "iPhone SE" },
+    ],
+  });
+  assert.deepEqual(config.routes[0].viewport, { width: 1280, height: 800 });
+  assert.equal(config.routes[1].device, "iPhone SE");
+});
+
+test("public static analysis identifies candidates without claiming runtime failures", async (t) => {
+  const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const path = await import("node:path");
+  const root = await mkdtemp(
+    path.join(tmpdir(), "hydration-doctor-public-api-"),
+  );
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    path.join(root, "app.jsx"),
+    "export const width = window.innerWidth;\n",
+  );
+  const report = await PublicApi.analyzeStaticSources(root);
+  assert.equal(report.findings[0].confidence, "candidate");
+  assert.equal(
+    report.findings[0].rule,
+    "browser-global-during-render-candidate",
+  );
+  assert.equal(report.schemaVersion, 1);
+});
+
 test("redacts URL credentials and common secrets while preserving ordinary query values", () => {
   const safeUrl = sanitizeUrl(
     "https://user:pass@example.test/route?access_token=abc123&tab=recent#session=xyz",
