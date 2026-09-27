@@ -63,6 +63,13 @@ CLI values for browser, reporter, timeout, concurrency, and retries override con
 
 Configuration files are executable trusted JavaScript modules. Do not load an untrusted config. The CLI does not overwrite an existing config when running `init`. HTML and JSON report files are created with owner-only permissions where the operating system supports them. Snapshot text/attributes and explicitly enabled HTML evidence can place private application content in reports; review reports before sharing.
 
+## Guides
+
+- [Reading JSON, HTML, and terminal reports](docs/REPORTS.md)
+- [Troubleshooting browser, route, and snapshot checks](docs/TROUBLESHOOTING.md)
+- [Contributing and running the checks](CONTRIBUTING.md)
+- [Master epic and implementation status](docs/roadmap/MASTER_EPIC.md)
+
 ### Optional React recoverable-error hook
 
 React's public `hydrateRoot` options can feed recoverable errors to an application-owned collector:
