@@ -1,13 +1,28 @@
 # Release process
 
-Hydration Doctor remains experimental and pre-1.0. A version bump, changelog entry, merged PR, CI pass, or package dry-run does not publish a release.
+Hydration Doctor is experimental and pre-1.0. Breaking changes can occur between 0.x versions without migration guarantees. A version bump, changelog entry, merged PR, CI pass, or package dry-run does not publish a release.
 
-Before proposing a package release:
+## One-time npm trusted publisher setup
 
-1. Choose the next 0.x semver version and update `package.json`, `package-lock.json`, and `CHANGELOG.md` together.
-2. Run `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` from a clean checkout. Review the packed file list and README disclaimer.
-3. Confirm the full supported CI matrix passes and the README, compatibility matrix, API docs, and migration notes match verified behavior.
-4. Have a human explicitly authorize publication. Only then use the documented protected release process and least-privilege credentials.
-5. After publication succeeds, verify the exact registry version and update `CHANGELOG.md` from Unreleased to Published with the registry link and date.
+After the package exists on npm, configure its trusted publisher to match this repository:
 
-Do not publish from pull-request workflows. The current CI workflow has read-only repository permissions and performs package dry-run and consumer installation only.
+- Provider: GitHub Actions
+- Owner: `shivam039`
+- Repository: `hydration-doctor`
+- Workflow filename: `publish.yml`
+- Environment: none
+- Allow direct `npm publish` for this publisher
+
+The workflow uses a GitHub-hosted runner, npm OIDC (`id-token: write`), Node.js 24, and npm 11.15.0. npm automatically creates provenance attestations for trusted GitHub Actions publishes from this public repository. It does not use an npm token. Keep the trusted-publisher workflow filename aligned with npm's package settings.
+
+The first release must bootstrap the package from an authenticated maintainer session because a package must exist before its npm package settings can be configured. Publish only after the trusted workflow is merged, configure the publisher immediately after bootstrap, and use the trusted workflow for later versions. The maintainer explicitly authorizes this initial bootstrap in the release request.
+
+## Each release
+
+1. Choose the next 0.x semver version and update `package.json`, `package-lock.json`, and `CHANGELOG.md` together. Add release notes and ensure the README disclaimer and support matrix are accurate.
+2. Run `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` from a clean checkout. Review the packed file list.
+3. Confirm the full supported CI matrix passes and the npm trusted publisher is configured for `.github/workflows/publish.yml`.
+4. Merge the release commit into `main`, then create and push the matching `v<version>` tag. The trusted publishing workflow verifies the tag/package version, reruns checks and consumer installation, then publishes to npm with provenance.
+5. Verify the exact registry version and provenance on npm. Update the changelog's Unreleased entry to Published with the registry link and date, then create a GitHub Release for the same tag.
+
+Do not publish from pull-request workflows. The general CI workflow has read-only repository permissions and performs package dry-run and consumer installation only. The npm publishing workflow runs only for version tags in this repository and receives OIDC permissions only in its publish job.

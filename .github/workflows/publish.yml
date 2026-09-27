@@ -1,0 +1,62 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'shivam039/hydration-doctor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js and npm registry
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install npm with trusted-publishing support
+        run: npm install --global npm@11.15.0
+
+      - name: Verify release tag matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [[ "$GITHUB_REF_NAME" != "v$PACKAGE_VERSION" ]]; then
+            echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION" >&2
+            exit 1
+          fi
+          if [[ "$(npm --version)" != 11.15.0 ]]; then
+            echo "Expected npm 11.15.0 for reproducible trusted publishing; found $(npm --version)" >&2
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run release checks
+        run: |
+          npm run check
+          npm run test:consumer
+          npm pack --dry-run
+
+      - name: Publish with npm trusted publishing
+        run: npm publish --access public
