@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { devices } from "playwright";
 
 export function defineConfig(config) {
   return config;
@@ -61,6 +62,29 @@ export function validateConfig(input) {
             errors,
             true,
           );
+        if (
+          route.viewport !== undefined &&
+          (!route.viewport ||
+            !Number.isInteger(route.viewport.width) ||
+            !Number.isInteger(route.viewport.height) ||
+            route.viewport.width < 1 ||
+            route.viewport.height < 1 ||
+            route.viewport.width > 7680 ||
+            route.viewport.height > 7680)
+        ) {
+          errors.push(
+            `routes[${index}].viewport width and height must be integers from 1 to 7680.`,
+          );
+        }
+        if (
+          route.device !== undefined &&
+          (typeof route.device !== "string" ||
+            !Object.hasOwn(devices, route.device))
+        ) {
+          errors.push(
+            `routes[${index}].device must name a Playwright device descriptor.`,
+          );
+        }
         if (route.interactions !== undefined) {
           if (
             !Array.isArray(route.interactions) ||
@@ -385,9 +409,9 @@ export function validateConfig(input) {
   }
   if (
     input.device !== undefined &&
-    (typeof input.device !== "string" || !input.device.trim())
+    (typeof input.device !== "string" || !Object.hasOwn(devices, input.device))
   ) {
-    errors.push("device must be a Playwright device descriptor name.");
+    errors.push("device must name a Playwright device descriptor.");
   }
   if (
     input.storageState !== undefined &&

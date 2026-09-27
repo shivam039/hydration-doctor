@@ -45,12 +45,15 @@ export async function withBrowser(config, callback, signal) {
 
 export async function runPage(browser, url, config, scenario, signal) {
   throwIfAborted(signal);
-  const device = config.device ? devices[config.device] : {};
-  if (config.device && !device)
-    throw new Error(`Unknown Playwright device descriptor: ${config.device}`);
+  const deviceName = scenario.route.device ?? config.device;
+  const device = deviceName ? devices[deviceName] : {};
+  if (deviceName && !device)
+    throw new Error(`Unknown Playwright device descriptor: ${deviceName}`);
   const context = await browser.newContext({
     ...device,
-    viewport: config.viewport,
+    viewport:
+      scenario.route.viewport ??
+      (scenario.route.device ? device.viewport : config.viewport),
     locale: config.locale,
     timezoneId: config.timezoneId,
     colorScheme: config.colorScheme,
