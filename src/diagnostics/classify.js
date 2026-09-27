@@ -65,7 +65,7 @@ export function classifyScenarioFindings(messages, reproduction) {
     )
       category = "missing-expected-ui";
     else if (
-      /Configured (click|fill|submit) interaction step \d+ failed/i.test(
+      /Configured (click|fill|press|submit) interaction step \d+ failed/i.test(
         message,
       )
     )

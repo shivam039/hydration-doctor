@@ -303,6 +303,53 @@ test("accepts value assertions only for string-valued fill interactions", () => 
   );
 });
 
+test("validates bounded keyboard press interaction key names", () => {
+  const config = validateConfig({
+    baseUrl: "http://localhost",
+    routes: [
+      {
+        path: "/",
+        interactions: [
+          { type: "press", selector: "#command", key: "ControlOrMeta+Enter" },
+        ],
+      },
+    ],
+  });
+  assert.equal(config.routes[0].interactions[0].key, "ControlOrMeta+Enter");
+  for (const key of ["", "Shift++Enter", "Enter\nsecret", "A".repeat(33)]) {
+    assert.throws(
+      () =>
+        validateConfig({
+          baseUrl: "http://localhost",
+          routes: [
+            {
+              path: "/",
+              interactions: [{ type: "press", selector: "#command", key }],
+            },
+          ],
+        }),
+      /key must be a supported key name or shortcut/,
+    );
+  }
+});
+
+test("keeps repeated route checks distinct when keyboard keys differ", () => {
+  const config = validateConfig({
+    baseUrl: "http://localhost",
+    routes: [
+      {
+        path: "/",
+        interactions: [{ type: "press", selector: "#command", key: "Enter" }],
+      },
+      {
+        path: "/",
+        interactions: [{ type: "press", selector: "#command", key: "Escape" }],
+      },
+    ],
+  });
+  assert.equal(config.routes.length, 2);
+});
+
 test("help and version commands are executable", async () => {
   const logs = [];
   const io = {
