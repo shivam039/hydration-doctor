@@ -58,5 +58,28 @@ jobs:
           npm run test:consumer
           npm pack --dry-run
 
+      - name: Verify registry version matches this release artifact
+        id: registry
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          npm pack --json --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/packed.json"
+          PACKAGE_INTEGRITY="$(node -e "console.log(JSON.parse(require('node:fs').readFileSync(process.argv[1], 'utf8'))[0].integrity)" "$RUNNER_TEMP/packed.json")"
+          if REGISTRY_INTEGRITY="$(npm view "hydration-doctor@$PACKAGE_VERSION" dist.integrity --json 2>/dev/null)"; then
+            REGISTRY_INTEGRITY="${REGISTRY_INTEGRITY//\"/}"
+            if [[ "$REGISTRY_INTEGRITY" != "$PACKAGE_INTEGRITY" ]]; then
+              echo "Registry version $PACKAGE_VERSION exists with different package integrity" >&2
+              exit 1
+            fi
+            echo "already-published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already-published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Publish with npm trusted publishing
+        if: steps.registry.outputs.already-published != 'true'
         run: npm publish --access public
+
+      - name: Confirm this exact artifact is already published
+        if: steps.registry.outputs.already-published == 'true'
+        run: echo "The registry already contains this exact package artifact; skipping duplicate publication."
