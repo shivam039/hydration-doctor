@@ -6,6 +6,8 @@ import { once } from "node:events";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { scan } from "../src/runtime/scan.js";
+import { withBrowser } from "../src/browser/engine.js";
+import { validateConfig } from "../src/config/index.js";
 
 const repository = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -47,6 +49,38 @@ test(
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForRoute(server, `${baseUrl}/app-router`);
 
+    const streamingPage = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/streaming"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/streaming`, {
+          waitUntil: "commit",
+          timeout: 10_000,
+        });
+        const fallback = page.getByRole("status");
+        await fallback.waitFor({ state: "visible", timeout: 5000 });
+        const fallbackVisible = await fallback.isVisible();
+        const readyContentBeforeStream = await page
+          .getByText("Streamed account dashboard ready", { exact: true })
+          .isVisible()
+          .catch(() => false);
+        await page
+          .getByText("Streamed account dashboard ready", { exact: true })
+          .waitFor({ state: "visible", timeout: 5000 });
+        await page.close();
+        return { fallbackVisible, readyContentBeforeStream };
+      },
+    );
+    assert.deepEqual(streamingPage, {
+      fallbackVisible: true,
+      readyContentBeforeStream: false,
+    });
+
     const report = await scan({
       baseUrl,
       browser: "chromium",
@@ -62,6 +96,12 @@ test(
           expectedSelector: "main",
           expectedText: "Next Pages Router production fixture",
         },
+        {
+          path: "/streaming",
+          expectedSelector: "main",
+          expectedText: "Streamed account dashboard ready",
+          readySelector: "main",
+        },
       ],
     });
     assert.equal(report.status, "passed");
@@ -72,7 +112,33 @@ test(
         ["refresh", true],
         ["direct", true],
         ["refresh", true],
+        ["direct", true],
+        ["refresh", true],
       ],
+    );
+
+    const boundedStart = Date.now();
+    const incomplete = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 1000,
+      routes: [
+        {
+          path: "/streaming",
+          expectedText: "Text that never streams",
+        },
+      ],
+    });
+    assert.equal(incomplete.status, "failed");
+    assert.ok(Date.now() - boundedStart < 8000);
+    assert.equal(incomplete.results[0].passed, false);
+    assert.equal(
+      incomplete.results[0].diagnostics[0].category,
+      "missing-expected-ui",
+    );
+    assert.doesNotMatch(
+      JSON.stringify(incomplete.results[0].diagnostics),
+      /confirmed-hydration/,
     );
   },
 );

@@ -1,6 +1,6 @@
 # Next release PRD: Hydration Doctor 0.4.0
 
-**Status:** Planned  
+**Status:** Implementation in progress
 **Iteration:** 2 of 5  
 **Audience:** Next.js App Router developers using Suspense and streamed server rendering
 
@@ -29,7 +29,7 @@ Add a deterministic production Next.js App Router fixture with a Suspense fallba
 
 ## Issue
 
-- **HD-NR-5:** production Suspense streaming and readiness verification — tracked as a GitHub issue during iteration 2.
+- **HD-NR-5:** production Suspense streaming and readiness verification — [issue #26](https://github.com/shivam039/hydration-doctor/issues/26).
 
 ## Verification
 
