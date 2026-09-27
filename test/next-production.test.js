@@ -157,6 +157,61 @@ test(
       ],
     );
 
+    const clientNavigation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 15_000,
+      navigation: {
+        from: "/app-router",
+        click: 'a[href="/app-router-destination"]',
+        to: "/app-router-destination",
+      },
+      routes: [
+        {
+          path: "/app-router-destination",
+          expectedSelector: "main",
+          expectedText: "Next App Router client destination ready",
+          readySelector: "main",
+        },
+      ],
+    });
+    assert.equal(clientNavigation.status, "passed");
+    const navigationResult = clientNavigation.results[2];
+    assert.equal(navigationResult.scenario, "client-navigation");
+    assert.equal(navigationResult.passed, true);
+    assert.match(navigationResult.url, /app-router-destination$/);
+    assert.doesNotMatch(
+      navigationResult.findings.join(" "),
+      /Navigation used a new document request/,
+    );
+    assert.deepEqual(navigationResult.events.history, {
+      back: true,
+      forward: true,
+    });
+
+    const failedTransitionExpectation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 1000,
+      navigation: {
+        from: "/app-router",
+        click: 'a[href="/app-router-destination"]',
+        to: "/app-router-destination",
+      },
+      routes: [
+        {
+          path: "/app-router-destination",
+          expectedText: "Destination content that never appears",
+        },
+      ],
+    });
+    assert.equal(failedTransitionExpectation.status, "failed");
+    assert.equal(failedTransitionExpectation.results[2].passed, false);
+    assert.doesNotMatch(
+      JSON.stringify(failedTransitionExpectation.results[2].diagnostics),
+      /confirmed-hydration/,
+    );
+
     const missingDelayedClient = await scan({
       baseUrl,
       browser: "chromium",
