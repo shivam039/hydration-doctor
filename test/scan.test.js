@@ -315,6 +315,22 @@ test("scan CLI applies reporter overrides and returns the verified-failure exit 
   assert.equal(JSON.parse(output[0]).status, "failed");
 });
 
+test("scan CLI accepts a direct URL and preserves its query and fragment", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const messages = [];
+  const result = await main(
+    ["scan", "--url", `${baseUrl}/client?tab=profile#details`],
+    {
+      log: (message) => messages.push(message),
+      error: (message) => messages.push(message),
+    },
+  );
+  assert.equal(result, 0);
+  assert.equal(messages.length, 1);
+  assert.ok(messages[0].includes(`${baseUrl}/client?tab=profile#details`));
+});
+
 test("scan CLI writes HTML and multiple self-contained reports without overwriting", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());

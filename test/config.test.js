@@ -127,6 +127,18 @@ test("parses CLI options and rejects missing option values", () => {
   assert.throws(() => parseArgs(["scan", "--url"]), /requires a value/);
 });
 
+test("help and version commands are executable", async () => {
+  const logs = [];
+  const io = {
+    log: (message) => logs.push(message),
+    error: (message) => logs.push(message),
+  };
+  assert.equal(await main(["--help"], io), 0);
+  assert.match(logs[0], /Usage:/);
+  assert.equal(await main(["--version"], io), 0);
+  assert.equal(logs[1], "0.1.0");
+});
+
 test("init creates a private config and refuses to overwrite existing content", async (t) => {
   const dir = await mkdtemp(path.join(tmpdir(), "hydration-doctor-init-"));
   t.after(() => rm(dir, { recursive: true, force: true }));
