@@ -5,7 +5,12 @@ export function formatTerminalReport(report) {
     const detail = result.findings.length
       ? ` — ${result.findings.join("; ")}`
       : "";
-    lines.push(`${status} ${result.scenario} ${result.url}${detail}`);
+    const baseline = result.visualBaseline
+      ? ` — visual baseline ${result.visualBaseline.status}${result.visualBaseline.file ? ` (${result.visualBaseline.file})` : ""}`
+      : "";
+    lines.push(
+      `${status} ${result.scenario} ${result.url}${detail}${baseline}`,
+    );
   }
   const passed = report.results.filter((result) => result.passed).length;
   lines.push(

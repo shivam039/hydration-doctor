@@ -113,6 +113,25 @@ test("rejects oversized route and snapshot configurations", () => {
       }),
     /at most 5 attributes/,
   );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: [{ path: "/", visual: { maxDiffRatio: 1.1 } }],
+      }),
+    /maxDiffRatio must be from 0 to 1/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        baseUrl: "http://localhost",
+        routes: Array.from({ length: 6 }, (_, index) => ({
+          path: `/${index}`,
+          visual: {},
+        })),
+      }),
+    /At most 5 routes/,
+  );
 });
 
 test("parses CLI options and rejects missing option values", () => {
@@ -124,7 +143,117 @@ test("parses CLI options and rejects missing option values", () => {
       reporter: "json",
     },
   );
+  assert.equal(
+    parseArgs(["scan", "--config", "config.js", "--update-baselines"])
+      .updateBaselines,
+    true,
+  );
+  assert.equal(
+    parseArgs(["scan", "--config", "config.js", "--viewport", "390x844"])
+      .viewport,
+    "390x844",
+  );
   assert.throws(() => parseArgs(["scan", "--url"]), /requires a value/);
+});
+
+test("rejects malformed and out-of-range viewport CLI overrides", async () => {
+  const errors = [];
+  const io = {
+    log() {},
+    error(value) {
+      errors.push(value);
+    },
+  };
+  assert.equal(
+    await main(
+      ["scan", "--url", "http://localhost", "--viewport", "mobile"],
+      io,
+    ),
+    2,
+  );
+  assert.match(errors.at(-1), /WIDTHxHEIGHT/);
+  assert.equal(
+    await main(
+      ["scan", "--url", "http://localhost", "--viewport", "9000x9000"],
+      io,
+    ),
+    2,
+  );
+  assert.match(errors.at(-1), /viewport width and height/);
+});
+
+test("accepts value assertions only for string-valued fill interactions", () => {
+  const base = {
+    baseUrl: "http://localhost",
+    routes: [
+      {
+        path: "/",
+        interactions: [
+          {
+            type: "fill",
+            selector: "input",
+            value: "private",
+            expect: { value: "private" },
+          },
+        ],
+      },
+    ],
+  };
+  assert.equal(
+    validateConfig(base).routes[0].interactions[0].expect.value,
+    "private",
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [
+          {
+            path: "/",
+            interactions: [
+              {
+                type: "click",
+                selector: "button",
+                expect: { value: "private" },
+              },
+            ],
+          },
+        ],
+      }),
+    /supported only for fill/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [
+          {
+            path: "/",
+            interactions: [
+              {
+                type: "fill",
+                selector: "input",
+                value: "private",
+                expect: { value: 7 },
+              },
+            ],
+          },
+        ],
+      }),
+    /expect.value must be a string/,
+  );
+});
+
+test("help and version commands are executable", async () => {
+  const logs = [];
+  const io = {
+    log: (message) => logs.push(message),
+    error: (message) => logs.push(message),
+  };
+  assert.equal(await main(["--help"], io), 0);
+  assert.match(logs[0], /Usage:/);
+  assert.equal(await main(["--version"], io), 0);
+  assert.equal(logs[1], "0.1.0");
 });
 
 test("init creates a private config and refuses to overwrite existing content", async (t) => {

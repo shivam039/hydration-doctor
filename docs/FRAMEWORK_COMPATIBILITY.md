@@ -1,0 +1,15 @@
+# Framework compatibility evidence
+
+Hydration Doctor's scanner is framework-independent: it checks the browser-visible document, configured selectors/text, navigation, runtime events, and snapshots. It does not inspect React or Next.js internals.
+
+| Framework/runtime                 | Router                | Fixture routes                         | Verified behavior                                                                                                               |
+| --------------------------------- | --------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| React 18.3.1                      | `hydrateRoot` fixture | `/react-healthy`, `/hydration-warning` | Healthy hydration remains clean; a known text mismatch warning is reported separately from generic console errors.              |
+| Next.js 15.5.26 with React 18.3.1 | App Router            | `/app-router`                          | Real Next development server, direct load and refresh, main content assertion.                                                  |
+| Next.js 15.5.26 with React 18.3.1 | Pages Router          | `/pages-router`                        | Real Next development server, direct load and refresh, main content assertion.                                                  |
+| Next.js 15.5.26 with React 18.3.1 | App and Pages Routers | `/app-router`, `/pages-router`         | Production build and server, direct load and refresh, main content assertions.                                                  |
+| Next.js 15.5.26 with React 18.3.1 | App Router            | `/streaming`                           | Production Suspense fallback observed before delayed streamed content; direct-load/refresh expectations wait for final content. |
+
+The development fixture runs in development mode. A separate fixture runs `next build` and `next start` before scanning production direct loads and refreshes. Its streaming route verifies a visible Suspense fallback followed by delayed content and a bounded missing-content failure. CI exercises these fixtures on Node.js 20, 22, and 24 with Chromium. This is scanner-compatibility evidence for the pinned Next.js version, not a claim that all Next.js behaviors are supported. Other streaming/Suspense patterns, Server/Client Component transitions, dynamic imports, and route prefetching do not yet have dedicated compatibility fixtures.
+
+See [`test/next-compat.test.js`](../test/next-compat.test.js), [`test/next-production.test.js`](../test/next-production.test.js), [`test/scan.test.js`](../test/scan.test.js), and the [fixture inventory](FIXTURE_INVENTORY.md) for executable evidence.

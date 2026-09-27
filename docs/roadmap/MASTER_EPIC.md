@@ -5,35 +5,37 @@ This roadmap records scope, dependencies, acceptance, and evidence for the 18 ep
 ## Progress ledger
 
 - **Repository baseline (2026-09-25):** inspected authenticated repository `shivam039/hydration-doctor`; it was empty (no commits or files). No pre-existing code/configuration to preserve.
-- **Active:** Phase 1 completion and Phase 2 foundations (HD-01–HD-09), with reporting/security groundwork (HD-13/14).
-- **Completed:** none.
-- **Verification (local checkpoint, 2026-09-27):** `npm run check` passed: ESLint, 28 Node tests, and Prettier. This includes real Chromium navigation/hydration fixtures, adversarial cross-origin request checks, HTML report escaping/redaction, output permissions, and bounded evidence. [Adversarial review record](security/ADVERSARIAL_REVIEW_2026-09-27.md) documents findings and residual risks. CI on this checkpoint is pending. No Next.js fixture, visual diff, static analysis, or package release is claimed.
-- **Implementation checkpoint:** feature commit [`31c5d81`](https://github.com/shivam039/hydration-doctor/commit/31c5d81) is on [`feat/phase-1-foundation-cli-navigation`](https://github.com/shivam039/hydration-doctor/tree/feat/phase-1-foundation-cli-navigation); draft [PR #19](https://github.com/shivam039/hydration-doctor/pull/19). Follow-up commits and later phase evidence belong here; do not merge while incomplete.
+- **Issue queue:** all 18 master-epic GitHub issues and all eight next-release issues (#22–#29) are closed with acceptance evidence. Their closures do not claim the full breadth of every master-epic description is finished; remaining release gaps are documented below.
+- **Five release iterations (2026-09-27):** PRDs [0.3.0](../releases/PRD_v0.3.0.md), [0.4.0](../releases/PRD_v0.4.0.md), [0.5.0](../releases/PRD_v0.5.0.md), [0.6.0](../releases/PRD_v0.6.0.md), and [0.7.0](../releases/PRD_v0.7.0.md) were posted; their implementation issues [#25](https://github.com/shivam039/hydration-doctor/issues/25), [#26](https://github.com/shivam039/hydration-doctor/issues/26), [#27](https://github.com/shivam039/hydration-doctor/issues/27), [#28](https://github.com/shivam039/hydration-doctor/issues/28), and [#29](https://github.com/shivam039/hydration-doctor/issues/29) are closed with CI evidence.
+- **Verification (2026-09-27):** `npm run check` passed: ESLint, 49 Node tests, and Prettier. Coverage includes CLI commands, real Chromium navigation/hydration/interactivity, empty-data and masked visual fixtures, React hydration fixtures, Next.js 15.5.26 App/Pages Router direct-load/refresh in development and production, production Suspense streaming/readiness, auth and local-storage restoration, persistent desktop/mobile visual baseline profiles, secret-safe input-reset assertions, and JS/JSX analyzer fixtures. `npm audit --omit=dev` found zero production vulnerabilities. `npm run test:consumer` installs the packed tarball into a fresh project and completes a real-browser scan. GitHub matrix run [#36296435023](https://github.com/shivam039/hydration-doctor/actions/runs/36296435023) passed on Node 20, 22, and 24, including package dry-run and consumer scan. [Adversarial review record](security/ADVERSARIAL_REVIEW_2026-09-27.md) documents findings and residual risks. No package release is claimed.
+- **Implementation checkpoint:** [PR #19](https://github.com/shivam039/hydration-doctor/pull/19) and adversarial fixes in [PR #20](https://github.com/shivam039/hydration-doctor/pull/20) are merged. Follow-up work is in [draft PR #21](https://github.com/shivam039/hydration-doctor/pull/21). No release has been published.
 - **GitHub issues:** created and confirmed with `gh`: [HD-01 #1](https://github.com/shivam039/hydration-doctor/issues/1), [HD-02 #2](https://github.com/shivam039/hydration-doctor/issues/2), [HD-03 #3](https://github.com/shivam039/hydration-doctor/issues/3), [HD-04 #4](https://github.com/shivam039/hydration-doctor/issues/4), [HD-05 #5](https://github.com/shivam039/hydration-doctor/issues/5), [HD-06 #6](https://github.com/shivam039/hydration-doctor/issues/6), [HD-07 #7](https://github.com/shivam039/hydration-doctor/issues/7), [HD-08 #8](https://github.com/shivam039/hydration-doctor/issues/8), [HD-09 #9](https://github.com/shivam039/hydration-doctor/issues/9), [HD-10 #10](https://github.com/shivam039/hydration-doctor/issues/10), [HD-11 #11](https://github.com/shivam039/hydration-doctor/issues/11), [HD-12 #12](https://github.com/shivam039/hydration-doctor/issues/12), [HD-13 #13](https://github.com/shivam039/hydration-doctor/issues/13), [HD-14 #14](https://github.com/shivam039/hydration-doctor/issues/14), [HD-15 #15](https://github.com/shivam039/hydration-doctor/issues/15), [HD-16 #16](https://github.com/shivam039/hydration-doctor/issues/16), [HD-17 #17](https://github.com/shivam039/hydration-doctor/issues/17), [HD-18 #18](https://github.com/shivam039/hydration-doctor/issues/18).
-- **Release state:** not release-ready. Phase 1 remains in progress; selected HD-05, HD-08, HD-13 and HD-14 capabilities are implemented and locally tested, while framework breadth, interaction, state/data, visual comparison, static analysis, release engineering and compatibility evidence remain outstanding.
+- **Next release PRD:** [Hydration Doctor 0.2.0](../releases/PRD_v0.2.0.md); issues [#22](https://github.com/shivam039/hydration-doctor/issues/22), [#23](https://github.com/shivam039/hydration-doctor/issues/23), and [#24](https://github.com/shivam039/hydration-doctor/issues/24) are closed with verification evidence.
+- **Follow-up release PRDs:** [0.3.0](../releases/PRD_v0.3.0.md), [0.4.0](../releases/PRD_v0.4.0.md), [0.5.0](../releases/PRD_v0.5.0.md), [0.6.0](../releases/PRD_v0.6.0.md), and [0.7.0](../releases/PRD_v0.7.0.md) were completed as five sequential iterations; all linked issues are closed. These are roadmap increments, not published npm releases.
+- **Release state:** not ready for a stable 1.0 release. Phase 1 remains in progress; selected HD-05, HD-06, HD-08, HD-10–HD-14 capabilities are implemented and verified. Advanced framework breadth, comprehensive fixture coverage, and stable-API/migration evidence remain outstanding.
 
 ## Epic index
 
-| ID    | Epic                                    |      Phase | Depends on                 | Status                   |
-| ----- | --------------------------------------- | ---------: | -------------------------- | ------------------------ |
-| HD-01 | Repository Foundation                   |          1 | —                          | In progress              |
-| HD-02 | CLI and Configuration                   |          1 | HD-01                      | In progress              |
-| HD-03 | Browser Runtime Engine                  |          1 | HD-01, HD-02               | In progress              |
-| HD-04 | Navigation Consistency                  |          1 | HD-02, HD-03               | In progress              |
-| HD-05 | SSR and Hydration Instrumentation       |          2 | HD-03                      | In progress              |
-| HD-06 | React and Next.js Adapters              |          2 | HD-05                      | Planned                  |
-| HD-07 | Hydration Interactivity Testing         |          2 | HD-03, HD-05               | Planned                  |
-| HD-08 | DOM and Structural Comparison           |          2 | HD-03                      | In progress              |
-| HD-09 | Loading, State, and Data Consistency    |          2 | HD-04, HD-05               | Planned                  |
-| HD-10 | Visual and Layout Regression            |          3 | HD-08                      | Planned                  |
-| HD-11 | Root-Cause Diagnostics                  |          3 | HD-05, HD-08, HD-09, HD-10 | Planned                  |
-| HD-12 | Optional Static Analysis                |          3 | HD-01                      | Planned                  |
-| HD-13 | Reporting and Developer Experience      |          4 | HD-08, HD-10, HD-11, HD-14 | In progress              |
-| HD-14 | Security, Privacy, and Reliability      |          4 | HD-01 onward               | In progress              |
-| HD-15 | Fixtures and Automated Testing          | Continuous | HD-01 onward               | In progress (continuous) |
-| HD-16 | CI/CD and npm Release Engineering       |          5 | HD-01, HD-15               | Planned                  |
-| HD-17 | Documentation and Open-Source Readiness |          5 | HD-02, HD-13, HD-14        | Planned                  |
-| HD-18 | Extensibility and Stable Release        |          5 | HD-01–HD-17                | Planned                  |
+| ID    | Epic                                    |      Phase | Depends on                 | Status                         |
+| ----- | --------------------------------------- | ---------: | -------------------------- | ------------------------------ |
+| HD-01 | Repository Foundation                   |          1 | —                          | Complete                       |
+| HD-02 | CLI and Configuration                   |          1 | HD-01                      | Issue acceptance closed        |
+| HD-03 | Browser Runtime Engine                  |          1 | HD-01, HD-02               | Complete                       |
+| HD-04 | Navigation Consistency                  |          1 | HD-02, HD-03               | Complete                       |
+| HD-05 | SSR and Hydration Instrumentation       |          2 | HD-03                      | Complete                       |
+| HD-06 | React and Next.js Adapters              |          2 | HD-05                      | Issue acceptance closed        |
+| HD-07 | Hydration Interactivity Testing         |          2 | HD-03, HD-05               | Complete (click fixture scope) |
+| HD-08 | DOM and Structural Comparison           |          2 | HD-03                      | Complete                       |
+| HD-09 | Loading, State, and Data Consistency    |          2 | HD-04, HD-05               | Issue acceptance closed        |
+| HD-10 | Visual and Layout Regression            |          3 | HD-08                      | Issue acceptance closed        |
+| HD-11 | Root-Cause Diagnostics                  |          3 | HD-05, HD-08, HD-09, HD-10 | Issue acceptance closed        |
+| HD-12 | Optional Static Analysis                |          3 | HD-01                      | Issue acceptance closed        |
+| HD-13 | Reporting and Developer Experience      |          4 | HD-08, HD-10, HD-11, HD-14 | Complete                       |
+| HD-14 | Security, Privacy, and Reliability      |          4 | HD-01 onward               | Complete                       |
+| HD-15 | Fixtures and Automated Testing          | Continuous | HD-01 onward               | In progress (continuous)       |
+| HD-16 | CI/CD and npm Release Engineering       |          5 | HD-01, HD-15               | Issue acceptance closed        |
+| HD-17 | Documentation and Open-Source Readiness |          5 | HD-02, HD-13, HD-14        | Issue acceptance closed        |
+| HD-18 | Extensibility and Stable Release        |          5 | HD-01–HD-17                | Issue acceptance closed        |
 
 ## Epics, acceptance, and completion evidence
 
@@ -75,7 +77,7 @@ Framework-independent core with optional React/Next capability detection coverin
 
 ### HD-07 — Hydration Interactivity Testing
 
-Configurable click/input/form/navigation interactions, ignored action and reset-input evidence, supported slow network/CPU scenarios, expected outcomes, and safe default interactions without React internals.
+Configurable click/input/form interactions with before-ready and readiness-gated checkpoints and expected outcomes, without React internals. Input reset evidence, navigation steps, and slow network/CPU scenarios remain planned.
 
 **Acceptance:** broken pre-hydration interaction fails; correctly gated interaction passes. **Evidence:** paired browser fixtures.
 

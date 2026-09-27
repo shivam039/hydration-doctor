@@ -7,7 +7,7 @@ const confirmedHydrationPatterns = [
   /hydration mismatch/i,
 ];
 
-export function classifyRuntimeEvents(events) {
+export function classifyRuntimeEvents(events, reproduction) {
   const findings = [];
   for (const entry of events.console) {
     const hydrationMessage = confirmedHydrationPatterns.some((pattern) =>
@@ -23,6 +23,7 @@ export function classifyRuntimeEvents(events) {
       explanation: hydrationMessage
         ? "The browser emitted a React hydration mismatch warning. This confirms the warning was observed; it does not identify its source or root cause."
         : "The browser emitted a console error. This does not by itself establish a hydration problem.",
+      reproduction,
     });
   }
   for (const message of events.pageErrors) {
@@ -33,6 +34,7 @@ export function classifyRuntimeEvents(events) {
       evidence: message,
       explanation:
         "The page raised an uncaught runtime exception during this scenario.",
+      reproduction,
     });
   }
   for (const request of events.failedRequests) {
@@ -43,12 +45,13 @@ export function classifyRuntimeEvents(events) {
       evidence: { url: request.url, reason: request.reason },
       explanation:
         "A browser request failed. The failure may be unrelated to rendering and is not classified as a hydration error.",
+      reproduction,
     });
   }
   return findings;
 }
 
-export function classifyScenarioFindings(messages) {
+export function classifyScenarioFindings(messages, reproduction) {
   return messages.flatMap((message) => {
     let category;
     if (/Unexpected redirect|Final URL .* expected URL/i.test(message))
@@ -57,6 +60,12 @@ export function classifyScenarioFindings(messages) {
       category = "loading-readiness-failure";
     else if (/selector .* failed|expected-text assertion failed/i.test(message))
       category = "missing-expected-ui";
+    else if (
+      /Configured (click|fill|submit) interaction step \d+ failed/i.test(
+        message,
+      )
+    )
+      category = "interaction-outcome-failure";
     else if (/HTTP \d+|request failed/i.test(message))
       category = "failed-network-dependency";
     if (!category) return [];
@@ -66,6 +75,8 @@ export function classifyScenarioFindings(messages) {
         confidence: "observed",
         severity: "error",
         evidence: message,
+        confidence: "observed",
+        reproduction,
       },
     ];
   });

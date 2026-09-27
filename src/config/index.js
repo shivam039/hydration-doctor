@@ -61,6 +61,122 @@ export function validateConfig(input) {
             errors,
             true,
           );
+        if (route.interactions !== undefined) {
+          if (
+            !Array.isArray(route.interactions) ||
+            route.interactions.length > 10
+          ) {
+            errors.push(
+              `routes[${index}].interactions must be an array with at most 10 steps.`,
+            );
+          } else {
+            route.interactions.forEach((interaction, stepIndex) => {
+              const label = `routes[${index}].interactions[${stepIndex}]`;
+              if (
+                !interaction ||
+                typeof interaction !== "object" ||
+                !["click", "fill", "submit"].includes(interaction.type) ||
+                typeof interaction.selector !== "string" ||
+                !interaction.selector.trim()
+              ) {
+                errors.push(
+                  `${label} must define click, fill, or submit and a selector.`,
+                );
+                return;
+              }
+              if (
+                interaction.type === "fill" &&
+                typeof interaction.value !== "string"
+              )
+                errors.push(`${label}.value must be a string for fill steps.`);
+              if (
+                interaction.checkpoint !== undefined &&
+                !["beforeReady", "ready"].includes(interaction.checkpoint)
+              ) {
+                errors.push(
+                  `${label}.checkpoint must be beforeReady or ready.`,
+                );
+              }
+              if (interaction.checkpoint === "ready" && !route.readySelector)
+                errors.push(
+                  `${label} uses checkpoint ready but route.readySelector is missing.`,
+                );
+              if (interaction.expect !== undefined) {
+                if (
+                  !interaction.expect ||
+                  typeof interaction.expect !== "object"
+                ) {
+                  errors.push(`${label}.expect must be an object.`);
+                } else {
+                  for (const key of ["selector", "text", "url", "value"]) {
+                    if (
+                      interaction.expect[key] !== undefined &&
+                      typeof interaction.expect[key] !== "string"
+                    )
+                      errors.push(`${label}.expect.${key} must be a string.`);
+                  }
+                  if (typeof interaction.expect.url === "string")
+                    validateHttpTarget(
+                      interaction.expect.url,
+                      baseUrl,
+                      `${label}.expect.url`,
+                      errors,
+                      false,
+                    );
+                  if (
+                    interaction.expect.value !== undefined &&
+                    interaction.type !== "fill"
+                  ) {
+                    errors.push(
+                      `${label}.expect.value is supported only for fill steps.`,
+                    );
+                  }
+                }
+              }
+            });
+          }
+        }
+        if (route.visual !== undefined) {
+          if (
+            !route.visual ||
+            typeof route.visual !== "object" ||
+            Array.isArray(route.visual)
+          ) {
+            errors.push(`routes[${index}].visual must be an object.`);
+          } else {
+            if (route.visual.baseline !== undefined) {
+              try {
+                validateBaselineName(route.visual.baseline);
+              } catch (error) {
+                errors.push(`routes[${index}].${error.message}`);
+              }
+            }
+            if (
+              route.visual.maxDiffRatio !== undefined &&
+              (typeof route.visual.maxDiffRatio !== "number" ||
+                !Number.isFinite(route.visual.maxDiffRatio) ||
+                route.visual.maxDiffRatio < 0 ||
+                route.visual.maxDiffRatio > 1)
+            ) {
+              errors.push(
+                `routes[${index}].visual.maxDiffRatio must be from 0 to 1.`,
+              );
+            }
+            if (
+              route.visual.maskSelectors !== undefined &&
+              (!Array.isArray(route.visual.maskSelectors) ||
+                route.visual.maskSelectors.length > 20 ||
+                route.visual.maskSelectors.some(
+                  (selector) =>
+                    typeof selector !== "string" || !selector.trim(),
+                ))
+            ) {
+              errors.push(
+                `routes[${index}].visual.maskSelectors must contain at most 20 non-empty selectors.`,
+              );
+            }
+          }
+        }
         for (const key of [
           "expectedSelector",
           "expectedText",
@@ -109,6 +225,15 @@ export function validateConfig(input) {
         }
       }
     });
+  if (
+    Array.isArray(input.routes) &&
+    input.routes.filter(
+      (route) =>
+        route && typeof route === "object" && route.visual !== undefined,
+    ).length > 5
+  ) {
+    errors.push("At most 5 routes may capture visual evidence per scan.");
+  }
   if (
     input.navigation !== undefined &&
     (!input.navigation ||
@@ -240,6 +365,25 @@ export function validateConfig(input) {
     );
   }
   if (
+    input.baselineDir !== undefined &&
+    (typeof input.baselineDir !== "string" || !input.baselineDir.trim())
+  ) {
+    errors.push("baselineDir must be a non-empty directory path.");
+  }
+  if (
+    input.updateBaselines !== undefined &&
+    typeof input.updateBaselines !== "boolean"
+  ) {
+    errors.push("updateBaselines must be boolean.");
+  }
+  if (
+    input.updateBaselines &&
+    (!Array.isArray(input.routes) ||
+      !input.routes.some((route) => route?.visual?.baseline))
+  ) {
+    errors.push("updateBaselines requires at least one route visual.baseline.");
+  }
+  if (
     input.includeHtmlEvidence !== undefined &&
     typeof input.includeHtmlEvidence !== "boolean"
   ) {
@@ -286,6 +430,18 @@ export function validateConfig(input) {
       typeof route === "string" ? { path: route } : route,
     ),
   };
+}
+
+function validateBaselineName(filename) {
+  if (
+    typeof filename !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,123}\.png$/.test(filename) ||
+    filename.includes("..")
+  ) {
+    throw new Error(
+      "visual.baseline must be a simple PNG filename inside baselineDir.",
+    );
+  }
 }
 
 function validateHttpTarget(value, baseUrl, label, errors, allowExternal) {

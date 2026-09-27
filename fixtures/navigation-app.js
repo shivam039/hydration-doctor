@@ -31,6 +31,90 @@ export async function startNavigationFixture({
       response.end("<html><body><h1>Broken route</h1></body></html>");
       return;
     }
+    if (pathname === "/empty-data") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        '<html><body><main><p id="status">No records found</p></main></body></html>',
+      );
+      return;
+    }
+    if (pathname === "/responsive-visual") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        "<html><head><style>body{margin:0}main{height:240px;width:70vw;background:#146e91;color:white;padding:16px;box-sizing:border-box}@media(max-width:600px){main{width:100vw;height:180px;background:#ac2e10}}</style></head><body><main>Responsive visual fixture</main></body></html>",
+      );
+      return;
+    }
+    if (
+      pathname === "/state-restoration" ||
+      pathname === "/state-restoration-broken"
+    ) {
+      const broken = pathname.endsWith("-broken");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><p id="preference"></p></main><script>const key='hd-fixture-preference';const loads=Number(sessionStorage.getItem('hd-loads')||'0')+1;sessionStorage.setItem('hd-loads',String(loads));if(!localStorage.getItem(key))localStorage.setItem(key,'blue');${broken ? "if(loads>1)localStorage.removeItem(key);" : ""}document.querySelector('#preference').textContent=localStorage.getItem(key)?'Preference restored':'Preference missing';</script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/auth-protected") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>Loading account</main><script>if(localStorage.getItem('hd-auth-state')==='authenticated-fixture-state'){document.querySelector('main').textContent='Account dashboard'}else{location.replace('/auth-sign-in')}</script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/auth-sign-in") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end("<html><body><main>Sign in required</main></body></html>");
+      return;
+    }
+    if (pathname === "/missing-sidebar") {
+      const hits = (renderingHits.get(pathname) ?? 0) + 1;
+      renderingHits.set(pathname, hits);
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main>${hits === 1 ? "<aside>Account navigation</aside>" : ""}<section><h1>Account content</h1></section></main></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/masked-visual") {
+      const hits = (renderingHits.get(pathname) ?? 0) + 1;
+      renderingHits.set(pathname, hits);
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><div id="volatile" style="width:300px;height:80px;background:#146e91;color:white">Dynamic label ${hits}</div><p>Stable content</p></main></body></html>`,
+      );
+      return;
+    }
+    if (
+      pathname === "/hydration-button-broken" ||
+      pathname === "/hydration-button-gated"
+    ) {
+      const gated = pathname.endsWith("gated");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><button id="save" ${gated ? "disabled" : ""}>Save</button><p id="result">Waiting</p></main><script>setTimeout(()=>{document.querySelector('#save').disabled=false;document.querySelector('#save').addEventListener('click',()=>{document.querySelector('#result').textContent='Saved'});document.documentElement.dataset.hydrated='true'},800)</script></body></html>`,
+      );
+      return;
+    }
+    if (
+      pathname === "/hydration-input-reset" ||
+      pathname === "/hydration-input-gated"
+    ) {
+      const gated = pathname.endsWith("gated");
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        `<html><body><main><label>Display name <input id="profile" ${gated ? "disabled" : ""}></label></main><script>setTimeout(()=>{const field=document.querySelector('#profile');${gated ? "field.disabled=false;" : "field.value='';"}document.documentElement.dataset.hydrated='true'},350)</script></body></html>`,
+      );
+      return;
+    }
+    if (pathname === "/hydration-form") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        '<html><body><main><form><label>Name <input id="name" name="name"></label><button id="submit" type="submit">Submit</button></form><p id="result">Waiting</p></main><script>document.querySelector("form").addEventListener("submit",event=>{event.preventDefault();document.querySelector("#result").textContent="Thank you, "+document.querySelector("#name").value})</script></body></html>',
+      );
+      return;
+    }
     if (
       pathname === "/expected-redirect" ||
       pathname === "/unexpected-redirect"

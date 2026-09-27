@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import * as PublicApi from "hydration-doctor";
+import * as ConfigApi from "hydration-doctor/config";
 import {
   createReactDiagnosticsAdapter,
   DoctorError,
@@ -8,6 +10,31 @@ import {
   redactSensitiveText,
   sanitizeUrl,
 } from "../src/index.js";
+
+test("pins documented package and config entry-point exports", () => {
+  for (const name of [
+    "scan",
+    "analyzeStaticSources",
+    "defineConfig",
+    "loadConfig",
+    "validateConfig",
+    "createReactDiagnosticsAdapter",
+    "formatTerminalReport",
+    "formatJsonReport",
+    "formatHtmlReport",
+    "DoctorError",
+    "getExitCode",
+    "redactSensitiveText",
+    "sanitizeUrl",
+  ]) {
+    assert.equal(typeof PublicApi[name], "function", `${name} is public`);
+  }
+  assert.deepEqual(Object.keys(ConfigApi).sort(), [
+    "defineConfig",
+    "loadConfig",
+    "validateConfig",
+  ]);
+});
 
 test("React adapter exposes the documented recoverable-error hook", () => {
   const captured = [];

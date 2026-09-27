@@ -13,6 +13,7 @@ import path from "node:path";
 import { scan } from "../src/runtime/scan.js";
 import { startNavigationFixture } from "../fixtures/navigation-app.js";
 import { main } from "../src/cli/index.js";
+import { formatHtmlReport } from "../src/reporters/html.js";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
@@ -56,6 +57,197 @@ test("checks direct navigation and refresh and detects missing expected UI", asy
     report.results[8].findings[0],
     /configured expected UI selector/,
   );
+});
+
+test("reports storage restoration regression as observed missing UI", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    routes: [
+      { path: "/state-restoration", expectedText: "Preference restored" },
+      {
+        path: "/state-restoration-broken",
+        expectedText: "Preference restored",
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.equal(report.results[1].passed, true);
+  assert.equal(report.results[2].passed, true);
+  assert.equal(report.results[3].passed, false);
+  assert.equal(
+    report.results[3].diagnostics[0].category,
+    "missing-expected-ui",
+  );
+  assert.equal(report.results[3].diagnostics[0].confidence, "observed");
+  assert.doesNotMatch(
+    JSON.stringify(report),
+    /blue|localStorage|sessionStorage/,
+  );
+  assert.doesNotMatch(JSON.stringify(report), /confirmed-hydration/);
+});
+
+test("detects clicks before hydration and passes when gated on readiness", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 500,
+    routes: [
+      {
+        path: "/hydration-button-broken",
+        interactions: [
+          { type: "click", selector: "#save", expect: { text: "Saved" } },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, false);
+  assert.match(report.results[0].findings[0], /interaction step 1 failed/);
+  assert.doesNotMatch(JSON.stringify(report), /#save/);
+});
+
+test("detects pre-hydration input reset and passes readiness-gated fill without exposing values", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const secretValue = "private-fixture-input";
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    concurrency: 1,
+    routes: [
+      {
+        path: "/hydration-input-reset",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "fill",
+            selector: "#profile",
+            value: secretValue,
+            expect: { value: secretValue },
+          },
+        ],
+      },
+      {
+        path: "/hydration-input-gated",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "fill",
+            selector: "#profile",
+            checkpoint: "ready",
+            value: secretValue,
+            expect: { value: secretValue },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, false);
+  assert.equal(
+    report.results[0].diagnostics[0].category,
+    "interaction-outcome-failure",
+  );
+  assert.equal(report.results[2].passed, true);
+  assert.equal(report.results[2].interactions[0].passed, true);
+  assert.doesNotMatch(JSON.stringify(report), /private-fixture-input/);
+  assert.doesNotMatch(JSON.stringify(report), /confirmed-hydration/);
+});
+
+test("waits for an explicit hydration marker before interacting", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/hydration-button-gated",
+        readySelector: 'html[data-hydrated="true"]',
+        interactions: [
+          {
+            type: "click",
+            selector: "#save",
+            checkpoint: "ready",
+            expect: { text: "Saved" },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "click", passed: true },
+  ]);
+});
+
+test("accepts explicitly expected empty data and classifies a violated data assertion", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    routes: [
+      {
+        path: "/empty-data",
+        expectedSelector: "#status",
+        expectedText: "No records found",
+      },
+      {
+        path: "/empty-data",
+        expectedSelector: "#status",
+        expectedText: "Two records",
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.equal(report.results[2].passed, false);
+  assert.ok(
+    report.results[2].diagnostics.some(
+      (diagnostic) => diagnostic.category === "missing-expected-ui",
+    ),
+  );
+});
+
+test("fills and submits a form without copying entered values into evidence", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/hydration-form",
+        interactions: [
+          {
+            type: "fill",
+            selector: "#name",
+            value: "Ada",
+            expect: { selector: "#name" },
+          },
+          {
+            type: "submit",
+            selector: "#submit",
+            expect: { text: "Thank you, Ada" },
+          },
+        ],
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(report.results[0].interactions, [
+    { index: 1, type: "fill", passed: true },
+    { index: 2, type: "submit", passed: true },
+  ]);
+  assert.doesNotMatch(JSON.stringify(report), /Ada/);
 });
 
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
@@ -253,6 +445,15 @@ test("classifies a real React hydration mismatch and keeps generic errors separa
     (diagnostic) => diagnostic.category === "confirmed-hydration-warning",
   );
   assert.ok(hydrationDiagnostic);
+  assert.deepEqual(hydrationDiagnostic.reproduction, {
+    scenario: "direct",
+    route: "/hydration-warning",
+    url: `${baseUrl}/hydration-warning`,
+    steps: ["Open this route directly in the configured browser."],
+  });
+  assert.equal(hydrationDiagnostic.confidence, "observed");
+  assert.equal(hydrationDiagnostic.severity, "error");
+  assert.equal(hydrationDiagnostic.file, undefined);
   assert.equal(hydrationResult.ssrClientDifferences[0].kind, "text");
   assert.match(hydrationDiagnostic.evidence, /Text content did not match/);
   const genericResult = report.results[4];
@@ -289,8 +490,59 @@ test("compares configured DOM checkpoints without treating ignored dynamic regio
     report.results[0].diagnostics.at(-1).category,
     "navigation-dependent-rendering-inconsistency",
   );
+  assert.deepEqual(report.results[0].diagnostics.at(-1).reproduction.steps, [
+    "Open this route directly, then reload it in the browser.",
+  ]);
   assert.equal(report.results[2].passed, true);
   assert.deepEqual(report.results[2].diagnostics, []);
+});
+
+test("captures bounded screenshots and a pixel diff without calling it a hydration failure", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 3000,
+    routes: [
+      {
+        path: "/missing-sidebar",
+        expectedSelector: "main",
+        snapshot: { selector: "main", compareText: true },
+        visual: { maxDiffRatio: 0, maskSelectors: [] },
+      },
+      {
+        path: "/masked-visual",
+        expectedSelector: "main",
+        visual: { maxDiffRatio: 0, maskSelectors: ["#volatile"] },
+      },
+    ],
+  });
+  const direct = report.results[0];
+  const refresh = report.results[1];
+  assert.equal(direct.visualScreenshot.complete, true);
+  assert.equal(refresh.visualScreenshot.complete, true);
+  assert.ok(direct.visualScreenshot.byteLength < 256 * 1024);
+  assert.equal(direct.visualComparison.passed, false);
+  assert.ok(direct.visualComparison.changedPixelRatio > 0);
+  assert.ok(direct.visualDiff.data.length > 0);
+  assert.ok(
+    direct.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.category === "navigation-dependent-rendering-inconsistency",
+    ),
+  );
+  assert.ok(
+    direct.diagnostics.some(
+      (diagnostic) => diagnostic.category === "visual-rendering-difference",
+    ),
+  );
+  assert.doesNotMatch(JSON.stringify(direct.diagnostics), /hydration-error/);
+  const html = formatHtmlReport(report);
+  assert.match(html, /data:image\/png;base64,/);
+  assert.match(html, /Pixel differences highlighted in red/);
+  assert.equal(report.results[2].visualComparison.changedPixelRatio, 0);
+  assert.equal(report.results[2].passed, true);
 });
 
 test("scan CLI applies reporter overrides and returns the verified-failure exit code", async (t) => {
@@ -313,6 +565,22 @@ test("scan CLI applies reporter overrides and returns the verified-failure exit 
   );
   assert.equal(code, 1);
   assert.equal(JSON.parse(output[0]).status, "failed");
+});
+
+test("scan CLI accepts a direct URL and preserves its query and fragment", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const messages = [];
+  const result = await main(
+    ["scan", "--url", `${baseUrl}/client?tab=profile#details`],
+    {
+      log: (message) => messages.push(message),
+      error: (message) => messages.push(message),
+    },
+  );
+  assert.equal(result, 0);
+  assert.equal(messages.length, 1);
+  assert.ok(messages[0].includes(`${baseUrl}/client?tab=profile#details`));
 });
 
 test("scan CLI writes HTML and multiple self-contained reports without overwriting", async (t) => {

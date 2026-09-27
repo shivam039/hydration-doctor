@@ -6,6 +6,7 @@ import {
   captureSnapshot,
   compareSnapshots,
 } from "../comparison/snapshots.js";
+import { captureVisualEvidence } from "../comparison/visual.js";
 import { redactSensitiveText, sanitizeUrl } from "../utils/redact.js";
 import {
   classifyRuntimeEvents,
@@ -147,6 +148,14 @@ export async function runPage(browser, url, config, scenario) {
       config,
       scenario,
     );
+    let interactionEvidence = [];
+    if (scenario.name === "direct")
+      interactionEvidence = await runConfiguredInteractions(
+        page,
+        scenario.route,
+        config.baseUrl,
+        config.timeout,
+      );
     if (scenario.name === "direct")
       await assertRouteExpectations(page, scenario.route, config.timeout);
     const result = {
@@ -159,7 +168,9 @@ export async function runPage(browser, url, config, scenario) {
       diagnostics: [],
       events,
       documentEvidence: documentCapture.evidence,
+      interactions: interactionEvidence,
     };
+    result.reproduction = buildReproduction(scenario, result.url);
     let finalUrl = page.url();
     if (response.status() >= 400 && scenario.name !== "refresh")
       result.findings.push(`Document returned HTTP ${response.status()}.`);
@@ -175,6 +186,12 @@ export async function runPage(browser, url, config, scenario) {
           config,
           scenario,
         );
+      result.interactions = await runConfiguredInteractions(
+        page,
+        scenario.route,
+        config.baseUrl,
+        config.timeout,
+      );
       await assertRouteExpectations(page, scenario.route, config.timeout);
       finalUrl = page.url();
       result.url = sanitizeUrl(finalUrl);
@@ -206,6 +223,12 @@ export async function runPage(browser, url, config, scenario) {
         config,
         scenario,
         result,
+      );
+    }
+    if (scenario.name !== "client-navigation" && scenario.route.visual) {
+      result.visualScreenshot = await captureVisualEvidence(
+        page,
+        scenario.route.visual,
       );
     }
     const expectedUrl = scenario.route.expectedUrl
@@ -244,6 +267,7 @@ export async function runPage(browser, url, config, scenario) {
               evidence: differences,
               explanation:
                 "The configured snapshot differs between the initial server response and the observed client DOM. This difference alone does not prove a hydration error.",
+              reproduction: result.reproduction,
             });
             result.findings.push(
               "Configured SSR and client DOM snapshots differ; see evidence. This does not alone prove a hydration error.",
@@ -253,8 +277,8 @@ export async function runPage(browser, url, config, scenario) {
       }
     }
     result.diagnostics.push(
-      ...classifyRuntimeEvents(events),
-      ...classifyScenarioFindings(result.findings),
+      ...classifyRuntimeEvents(events, result.reproduction),
+      ...classifyScenarioFindings(result.findings, result.reproduction),
     );
     if (events.console.length)
       result.findings.push(
@@ -278,14 +302,109 @@ export async function runPage(browser, url, config, scenario) {
       url: sanitizeUrl(page.url()),
       passed: false,
       findings: [redactSensitiveText(error.message)],
-      diagnostics: classifyScenarioFindings([
-        redactSensitiveText(error.message),
-      ]),
+      diagnostics: classifyScenarioFindings(
+        [redactSensitiveText(error.message)],
+        buildReproduction(scenario, sanitizeUrl(page.url())),
+      ),
+      reproduction: buildReproduction(scenario, sanitizeUrl(page.url())),
       events,
     };
   } finally {
     await context.close();
   }
+}
+
+function buildReproduction(scenario, url) {
+  const steps =
+    scenario.name === "refresh"
+      ? ["Open this route directly, then reload it in the browser."]
+      : scenario.name === "client-navigation"
+        ? [
+            "Open the configured navigation entry route.",
+            "Activate its configured navigation control and follow the target route.",
+          ]
+        : ["Open this route directly in the configured browser."];
+  return {
+    scenario: scenario.name,
+    route: redactSensitiveText(scenario.route.path),
+    url,
+    steps,
+  };
+}
+
+async function runConfiguredInteractions(page, route, baseUrl, timeout) {
+  const evidence = [];
+  for (const [index, interaction] of (route.interactions ?? []).entries()) {
+    try {
+      if (interaction.checkpoint === "ready") {
+        await page
+          .locator(route.readySelector)
+          .first()
+          .waitFor({ state: "visible", timeout });
+      }
+      const locator = page.locator(interaction.selector).first();
+      if (interaction.type === "click") {
+        await locator.click({ timeout });
+      } else if (interaction.type === "fill") {
+        await locator.fill(interaction.value, { timeout });
+      } else {
+        const submitted = await locator.evaluate((element) => {
+          const form =
+            element instanceof HTMLFormElement ? element : element.form;
+          if (!form) return false;
+          form.requestSubmit();
+          return true;
+        });
+        if (!submitted) throw new Error("No form");
+      }
+      if (interaction.expect?.selector || interaction.expect?.text) {
+        await assertRouteExpectations(
+          page,
+          {
+            expectedSelector: interaction.expect.selector,
+            expectedText: interaction.expect.text,
+          },
+          timeout,
+        );
+      }
+      if (interaction.expect?.value !== undefined) {
+        if (route.readySelector) {
+          await page
+            .locator(route.readySelector)
+            .first()
+            .waitFor({ state: "visible", timeout });
+        }
+        await page.waitForFunction(
+          ({ selector, value }) => {
+            const element = document.querySelector(selector);
+            return (
+              (element instanceof HTMLInputElement ||
+                element instanceof HTMLTextAreaElement ||
+                element instanceof HTMLSelectElement) &&
+              element.value === value
+            );
+          },
+          {
+            selector: interaction.selector,
+            value: interaction.expect.value,
+          },
+          { timeout },
+        );
+      }
+      if (interaction.expect?.url) {
+        const expectedUrl = new URL(interaction.expect.url, baseUrl).href;
+        await page.waitForURL((candidate) => candidate.href === expectedUrl, {
+          timeout,
+        });
+      }
+      evidence.push({ index: index + 1, type: interaction.type, passed: true });
+    } catch {
+      throw new Error(
+        `Configured ${interaction.type} interaction step ${index + 1} failed or its expected result was not observed.`,
+      );
+    }
+  }
+  return evidence;
 }
 
 async function verifyHistory(page, config, scenario, result) {

@@ -1,4 +1,5 @@
 export { scan } from "./runtime/scan.js";
+export { analyzeStaticSources } from "./analysis/static.js";
 export { defineConfig, loadConfig, validateConfig } from "./config/index.js";
 export { createReactDiagnosticsAdapter } from "./adapters/react.js";
 export { DoctorError, getExitCode } from "./utils/errors.js";
