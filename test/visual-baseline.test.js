@@ -98,6 +98,56 @@ test("compares persistent visual baselines and only writes in explicit update mo
   );
 });
 
+test("captures responsive visual profiles with per-route viewport and device settings", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 5000,
+    viewport: { width: 1280, height: 800 },
+    routes: [
+      {
+        path: "/responsive-visual?profile=desktop",
+        expectedSelector: "main",
+        visual: { maxDiffRatio: 0 },
+      },
+      {
+        path: "/responsive-visual?profile=tablet",
+        viewport: { width: 768, height: 1024 },
+        expectedSelector: "main",
+        visual: { maxDiffRatio: 0 },
+      },
+      {
+        path: "/responsive-visual?profile=mobile",
+        device: "iPhone SE",
+        expectedSelector: "main",
+        visual: { maxDiffRatio: 0 },
+      },
+    ],
+  });
+  assert.equal(report.status, "passed");
+  assert.deepEqual(
+    report.results
+      .filter((result) => result.scenario === "direct")
+      .map(({ visualScreenshot }) => [
+        visualScreenshot.width,
+        visualScreenshot.height,
+        visualScreenshot.complete,
+      ]),
+    [
+      [1280, 800, true],
+      [768, 1024, true],
+      [320, 568, true],
+    ],
+  );
+  assert.ok(
+    report.results
+      .filter((result) => result.scenario === "refresh")
+      .every((result) => result.visualComparison?.passed === true),
+  );
+});
+
 test("rejects baseline paths that could escape the configured directory", () => {
   assert.throws(
     () =>

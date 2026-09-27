@@ -55,6 +55,36 @@ test("rejects unsafe URLs and invalid browser names", () => {
   );
 });
 
+test("validates route-level viewport bounds and known device descriptors", () => {
+  const base = {
+    baseUrl: "http://localhost:3000",
+    routes: [
+      {
+        path: "/mobile",
+        viewport: { width: 390, height: 844 },
+        device: "iPhone SE",
+      },
+    ],
+  };
+  assert.deepEqual(validateConfig(base).routes[0], base.routes[0]);
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [{ path: "/small", viewport: { width: 0, height: 400 } }],
+      }),
+    /routes\[0\]\.viewport width and height/,
+  );
+  assert.throws(
+    () =>
+      validateConfig({
+        ...base,
+        routes: [{ path: "/unknown", device: "Unknown Device" }],
+      }),
+    /routes\[0\]\.device must name a Playwright device descriptor/,
+  );
+});
+
 test("rejects duplicate routes after same-origin URL normalization without exposing targets", () => {
   const routes = [
     "/account?access_token=top-secret",
