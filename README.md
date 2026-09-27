@@ -66,6 +66,8 @@ Configuration files are executable trusted JavaScript modules. Do not load an un
 ## Guides
 
 - [Reading JSON, HTML, and terminal reports](docs/REPORTS.md)
+- [Public API and compatibility status](docs/API.md)
+- [Release readiness assessment](docs/RELEASE_READINESS.md)
 - [Troubleshooting browser, route, and snapshot checks](docs/TROUBLESHOOTING.md)
 - [Contributing and running the checks](CONTRIBUTING.md)
 - [Master epic and implementation status](docs/roadmap/MASTER_EPIC.md)
