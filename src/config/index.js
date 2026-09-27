@@ -225,6 +225,7 @@ export function validateConfig(input) {
         }
       }
     });
+  validateDuplicateRoutes(input.routes, baseUrl, errors);
   if (
     Array.isArray(input.routes) &&
     input.routes.filter(
@@ -457,6 +458,84 @@ function validateHttpTarget(value, baseUrl, label, errors, allowExternal) {
   } catch (error) {
     errors.push(`${label} is invalid: ${error.message}.`);
   }
+}
+
+function validateDuplicateRoutes(routes, baseUrl, errors) {
+  if (!Array.isArray(routes) || routes.length > 50 || !baseUrl) return;
+  const seen = new Map();
+  routes.forEach((route, index) => {
+    const targetPath =
+      typeof route === "string"
+        ? route
+        : route && typeof route === "object"
+          ? route.path
+          : undefined;
+    if (typeof targetPath !== "string" || !targetPath.trim()) return;
+    try {
+      const target = new URL(targetPath, baseUrl);
+      if (
+        !["http:", "https:"].includes(target.protocol) ||
+        target.username ||
+        target.password ||
+        target.origin !== baseUrl.origin
+      ) {
+        return;
+      }
+      const normalized = target.href.replace(/%[\da-f]{2}/gi, (escape) =>
+        escape.toUpperCase(),
+      );
+      const previous = seen.get(normalized) ?? [];
+      const hasComparison = hasRouteComparison(route);
+      const conflictingRoute = previous.find(
+        (entry) => hasComparison || hasRouteComparison(entry.route),
+      );
+      const signature = routeAssertionSignature(route);
+      const identicalRoute = previous.find(
+        (entry) => entry.signature === signature,
+      );
+      const duplicate = conflictingRoute ?? identicalRoute;
+      if (duplicate) {
+        errors.push(
+          `routes[${index}] duplicates routes[${duplicate.index}] after URL normalization.`,
+        );
+      } else {
+        previous.push({ index, route, signature });
+        seen.set(normalized, previous);
+      }
+    } catch {
+      // The regular route validation already reports malformed URL targets.
+    }
+  });
+}
+
+function hasRouteComparison(route) {
+  return Boolean(
+    route && typeof route === "object" && (route.snapshot || route.visual),
+  );
+}
+
+function routeAssertionSignature(route) {
+  if (typeof route === "string") return "{}";
+  return JSON.stringify({
+    expectedSelector: route.expectedSelector,
+    expectedText: route.expectedText,
+    expectedUrl: route.expectedUrl,
+    readySelector: route.readySelector,
+    interactions: route.interactions?.map((interaction) => ({
+      type: interaction.type,
+      selector: interaction.selector,
+      value: interaction.value,
+      checkpoint: interaction.checkpoint,
+      expect: interaction.expect
+        ? {
+            selector: interaction.expect.selector,
+            text: interaction.expect.text,
+            url: interaction.expect.url,
+            value: interaction.expect.value,
+          }
+        : undefined,
+    })),
+  });
 }
 
 export async function loadConfig(filename) {

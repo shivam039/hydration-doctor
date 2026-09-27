@@ -55,6 +55,7 @@ CLI values for browser, viewport, reporter, timeout, concurrency, and retries ov
 - `timeout`: per-operation milliseconds, 1–120000 (default 10000).
 - `concurrency`: number of independent scenarios to run at once, 1–8 (default 1).
 - `retries`: additional attempts for a scenario, 0–5 (default 0). A pass after a failure is still a failed, intermittent result.
+- Route checks that have the same normalized target and assertions are duplicates. Separate assertions may intentionally check the same URL; repeated snapshot/visual targets are rejected because comparison evidence is associated by target. Query strings and fragments remain part of the target.
 - `browser`: `chromium`, `firefox`, or `webkit` (default `chromium`).
 - `viewport`: `{ width, height }` (default 1280×800). `device`, `locale`, `timezoneId`, `colorScheme`, and `reducedMotion` configure the browser context.
 - `storageState`: optional Playwright storage state path or object for authenticated checks. The scanner does not print its contents.
