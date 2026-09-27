@@ -170,6 +170,41 @@ test("reports storage restoration regression as observed missing UI", async (t) 
   assert.doesNotMatch(JSON.stringify(report), /confirmed-hydration/);
 });
 
+test("waits for an explicit readiness marker through a deterministic state race", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1200,
+    routes: [
+      {
+        path: "/state-race-ready",
+        readySelector: 'html[data-hydrated="true"]',
+        expectedText: "Saved preference ready",
+      },
+      {
+        path: "/state-race-stalled",
+        readySelector: 'html[data-hydrated="true"]',
+        expectedText: "Saved preference ready",
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.equal(report.results[1].passed, true);
+  assert.equal(report.results[2].passed, false);
+  assert.equal(report.results[3].passed, false);
+  assert.ok(
+    report.results[2].diagnostics.some(
+      (diagnostic) => diagnostic.category === "loading-readiness-failure",
+    ),
+  );
+  assert.doesNotMatch(
+    JSON.stringify(report.results[2].diagnostics),
+    /confirmed-hydration/,
+  );
+});
+
 test("detects clicks before hydration and passes when gated on readiness", async (t) => {
   const { server, baseUrl } = await startNavigationFixture();
   t.after(() => server.close());
