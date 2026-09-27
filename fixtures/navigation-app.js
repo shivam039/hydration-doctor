@@ -31,6 +31,13 @@ export async function startNavigationFixture({
       response.end("<html><body><h1>Broken route</h1></body></html>");
       return;
     }
+    if (pathname === "/empty-data") {
+      response.writeHead(200, { "content-type": "text/html" });
+      response.end(
+        '<html><body><main><p id="status">No records found</p></main></body></html>',
+      );
+      return;
+    }
     if (
       pathname === "/hydration-button-broken" ||
       pathname === "/hydration-button-gated"

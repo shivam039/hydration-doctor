@@ -107,6 +107,35 @@ test("waits for an explicit hydration marker before interacting", async (t) => {
   ]);
 });
 
+test("accepts explicitly expected empty data and classifies a violated data assertion", async (t) => {
+  const { server, baseUrl } = await startNavigationFixture();
+  t.after(() => server.close());
+  const report = await scan({
+    baseUrl,
+    browser: "chromium",
+    timeout: 1000,
+    routes: [
+      {
+        path: "/empty-data",
+        expectedSelector: "#status",
+        expectedText: "No records found",
+      },
+      {
+        path: "/empty-data",
+        expectedSelector: "#status",
+        expectedText: "Two records",
+      },
+    ],
+  });
+  assert.equal(report.results[0].passed, true);
+  assert.equal(report.results[2].passed, false);
+  assert.ok(
+    report.results[2].diagnostics.some(
+      (diagnostic) => diagnostic.category === "missing-expected-ui",
+    ),
+  );
+});
+
 test("fails client-navigation scenario when a click loads a new document", async (t) => {
   const { server, baseUrl } = await startNavigationFixture({
     clientMode: "full-document",
