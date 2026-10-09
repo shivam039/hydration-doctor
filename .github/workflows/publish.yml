@@ -54,6 +54,7 @@ jobs:
 
       - name: Run release checks
         run: |
+          npm run release:check
           npm run check
           npm run test:consumer
           npm pack --dry-run

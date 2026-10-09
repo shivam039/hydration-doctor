@@ -27,12 +27,13 @@
   "license": "MIT",
   "scripts": {
     "test": "node --test",
+    "release:check": "node scripts/verify-release-record.js",
     "test:consumer": "node scripts/consumer-smoke.js",
     "test:browser-smoke": "node scripts/browser-engine-smoke.js",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "check": "npm run lint && npm test && npm run format:check"
+    "check": "npm run lint && npm run release:check && npm test && npm run format:check"
   },
   "dependencies": {
     "@typescript-eslint/typescript-estree": "^8.70.1",
