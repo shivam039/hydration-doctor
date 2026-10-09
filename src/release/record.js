@@ -42,7 +42,7 @@ export async function inspectReleaseRecord(root) {
     );
   } else {
     const publication = headings[0].match(
-      /—\s+Published\s+(\d{4}-\d{2}-\d{2})\s*$/,
+      /—\s+(?:Published|Release candidate)\s+(\d{4}-\d{2}-\d{2})\s*$/,
     );
     const publicationDate = publication?.[1];
     const parsedDate = publicationDate
@@ -54,7 +54,7 @@ export async function inspectReleaseRecord(root) {
       parsedDate.toISOString().slice(0, 10) !== publicationDate
     ) {
       errors.push(
-        `CHANGELOG.md must mark package version ${version} as Published with a valid date.`,
+        `CHANGELOG.md must mark package version ${version} as Published or Release candidate with a valid date.`,
       );
     }
   }

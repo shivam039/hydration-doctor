@@ -1,6 +1,6 @@
 # Hydration Doctor 0.29.0 — Dynamic App Router Segments
 
-**Status:** roadmap increment; not an npm publication.
+**Status:** roadmap increment included in the cumulative 0.32.0 release candidate; not published separately.
 
 ## Problem
 
