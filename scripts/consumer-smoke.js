@@ -49,6 +49,19 @@ try {
       stdio: "inherit",
     },
   );
+  execFileSync(
+    process.execPath,
+    [
+      path.join(consumerDirectory, "node_modules", "playwright", "cli.js"),
+      "install",
+      "chromium",
+    ],
+    {
+      cwd: temporaryDirectory,
+      stdio: "inherit",
+      timeout: 120_000,
+    },
+  );
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   const configPath = path.join(

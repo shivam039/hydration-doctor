@@ -18,7 +18,7 @@
 
 ## Release blockers
 
-- Next.js 15.5.26 App and Pages Router fixtures pass development and production direct-load/refresh scans; production App Router fixtures also verify one `<Link>` transition, Suspense streaming, and one delayed client `import()` readiness pattern. Other advanced routing/rendering behaviors remain unverified.
+- Next.js 15.5.26 App and Pages Router fixtures pass development and production direct-load/refresh scans; production App Router fixtures also verify path-only and one query-driven `<Link>` transition, Suspense streaming, and one delayed client `import()` readiness pattern. Other advanced routing/rendering behaviors remain unverified.
 - Visual comparison supports opt-in persistent PNG baselines with explicit update mode and path/symlink checks. Route-level Chromium profiles cover desktop (1280×800), tablet (768×1024), and emulated iPhone SE (320×568) on one fixture. This does not establish physical-device or cross-browser visual coverage.
 - AST analysis covers documented JavaScript/JSX and TypeScript/TSX candidate patterns, exact line suppressions, configurable bounded source exclusions, and JSON/SARIF output. It does not understand execution timing or a complete set of hydration hazards.
 - Continuous fixture coverage includes local-storage restoration, local anonymous/authenticated flows, nested production Suspense streaming, delayed client import, input reset, ready/stalled state markers, and readiness-gated keyboard/form interactions. Real identity providers, alternative streaming strategies, slow CPU/network conditions, and production race patterns remain unverified.

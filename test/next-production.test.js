@@ -243,6 +243,84 @@ test(
       forward: true,
     });
 
+    const queryClientNavigation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 15_000,
+      navigation: {
+        from: "/app-router-query",
+        click: 'a[href="/app-router-query-destination?view=activity"]',
+        to: "/app-router-query-destination?view=activity",
+      },
+      routes: [
+        {
+          path: "/app-router-query-destination?view=activity",
+          expectedSelector: "#query-view-ready",
+          expectedText: "Activity view ready",
+          readySelector: "#query-view-ready",
+        },
+      ],
+    });
+    assert.equal(queryClientNavigation.status, "passed");
+    const queryNavigationResult = queryClientNavigation.results.find(
+      (result) => result.scenario === "client-navigation",
+    );
+    assert.equal(queryNavigationResult.passed, true);
+    assert.equal(
+      queryNavigationResult.url,
+      `${baseUrl}/app-router-query-destination?view=activity`,
+    );
+    assert.doesNotMatch(
+      queryNavigationResult.findings.join(" "),
+      /Navigation used a new document request/,
+    );
+    assert.deepEqual(queryNavigationResult.events.history, {
+      back: true,
+      forward: true,
+    });
+
+    const queryHistory = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/app-router-query"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/app-router-query`, {
+          waitUntil: "domcontentloaded",
+        });
+        await page.getByRole("link", { name: "Open activity view" }).click();
+        await page.waitForURL(
+          `${baseUrl}/app-router-query-destination?view=activity`,
+        );
+        await page.getByText("Activity view ready", { exact: true }).waitFor();
+        const destinationText = await page
+          .locator("#query-view-ready")
+          .textContent();
+        await page.goBack();
+        await page.waitForURL(`${baseUrl}/app-router-query`);
+        const entryText = (await page.locator("main").innerText())
+          .replace(/\s+/g, " ")
+          .trim();
+        await page.goForward();
+        await page.waitForURL(
+          `${baseUrl}/app-router-query-destination?view=activity`,
+        );
+        const forwardText = await page
+          .locator("#query-view-ready")
+          .textContent();
+        await page.close();
+        return { destinationText, entryText, forwardText };
+      },
+    );
+    assert.deepEqual(queryHistory, {
+      destinationText: "Activity view ready",
+      entryText: "Next App Router query transition fixture Open activity view",
+      forwardText: "Activity view ready",
+    });
+
     const pagesClientNavigation = await scan({
       baseUrl,
       browser: "chromium",
