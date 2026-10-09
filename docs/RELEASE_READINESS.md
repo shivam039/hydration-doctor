@@ -1,6 +1,6 @@
 # Release readiness assessment
 
-**Status: not ready for a stable 1.0 release.** Experimental version 0.27.0 is published on npm; cumulative version 0.32.0 is being prepared for trusted publication. The first version has registry integrity/signature but no GitHub Actions provenance attestation. Version 0.32.0 remains pre-1.0 and does not close the compatibility or stability gaps below.
+**Status: not ready for a stable 1.0 release.** Experimental version 0.32.0 is published on npm through the GitHub Actions trusted publisher with provenance. The initial 0.27.0 publication predates this configuration and has no GitHub Actions provenance attestation. Version 0.32.0 remains pre-1.0 and does not close the compatibility or stability gaps below.
 
 ## Verified foundation
 
@@ -14,7 +14,7 @@
 - Pinned Next.js 15.5.26 production App and Pages Router fixtures verify direct load, refresh, `<Link>` transitions, target readiness, and browser back/forward. App Router evidence also covers nested Suspense streaming, a route-level loading boundary during client navigation, and deterministic ready/stalled application markers.
 - CI runs the full suite on Node.js 20, 22, and 24 with Chromium and targeted healthy/missing-UI smoke checks on Chromium, Firefox, and WebKit with Playwright 1.63.0. The non-Chromium checks remain smoke coverage only.
 - Security limits and residual findings are recorded in the [adversarial review](security/ADVERSARIAL_REVIEW_2026-09-27.md). The [master epic roadmap](roadmap/MASTER_EPIC.md) records remaining scope.
-- Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and the [release process](RELEASING.md). Version 0.32.0 is a cumulative early experimental release candidate; this is not a stable 1.0 readiness claim.
+- Release metadata, changelog, experimental disclaimer, and explicit publication checklist are maintained together. See [CHANGELOG.md](../CHANGELOG.md) and the [release process](RELEASING.md). Version 0.32.0 is a cumulative early experimental release; this is not a stable 1.0 readiness claim.
 
 ## Release blockers
 

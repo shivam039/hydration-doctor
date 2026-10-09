@@ -1,6 +1,6 @@
 # Hydration Doctor 0.31.0 — Delayed Responses and State Races
 
-**Status:** roadmap increment included in the cumulative 0.32.0 release candidate; not published separately.
+**Status:** roadmap increment included in cumulative npm release 0.32.0; not published separately.
 
 ## Problem
 
