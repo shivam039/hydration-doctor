@@ -250,6 +250,12 @@ export async function runPage(browser, url, config, scenario, signal) {
         result.findings.push(
           "Navigation used a new document request; expected client-side navigation.",
         );
+      result.interactions = await runConfiguredInteractions(
+        page,
+        scenario.route,
+        config.baseUrl,
+        config.timeout,
+      );
       await assertRouteExpectations(page, scenario.route, config.timeout);
       finalUrl = page.url();
       result.url = sanitizeUrl(finalUrl);
@@ -493,6 +499,12 @@ async function verifyHistory(page, config, scenario, result) {
       timeout: config.timeout,
     });
     await page.waitForURL(targetUrl, { timeout: config.timeout });
+    await runConfiguredInteractions(
+      page,
+      scenario.route,
+      config.baseUrl,
+      config.timeout,
+    );
     await assertRouteExpectations(page, scenario.route, config.timeout);
     history.forward = true;
   } catch (error) {

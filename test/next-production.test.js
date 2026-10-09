@@ -470,6 +470,80 @@ test(
       readyText: "Streamed destination ready",
     });
 
+    const stateRaceRoutes = [
+      {
+        path: "/app-router-state-race",
+        expectedSelector: "#race-account",
+        expectedText: "Account B ready",
+        readySelector: "#race-settled",
+        interactions: [
+          { type: "click", selector: "#load-slow-account" },
+          { type: "click", selector: "#load-fast-account" },
+        ],
+      },
+    ];
+    const latestWinsRace = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 10_000,
+      navigation: {
+        from: "/app-router-state-race-entry",
+        click: 'a[href="/app-router-state-race"]',
+        to: "/app-router-state-race",
+      },
+      routes: stateRaceRoutes,
+    });
+    assert.equal(
+      latestWinsRace.status,
+      "passed",
+      JSON.stringify(
+        latestWinsRace.results.map((result) => ({
+          scenario: result.scenario,
+          url: result.url,
+          findings: result.findings,
+        })),
+      ),
+    );
+    assert.ok(latestWinsRace.results.every((result) => result.passed));
+    const stateRaceNavigation = latestWinsRace.results.find(
+      (result) => result.scenario === "client-navigation",
+    );
+    assert.equal(stateRaceNavigation.url, `${baseUrl}/app-router-state-race`);
+    assert.equal(
+      stateRaceNavigation.events.history.back &&
+        stateRaceNavigation.events.history.forward,
+      true,
+    );
+
+    const staleResponseRace = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 10_000,
+      navigation: {
+        from: "/app-router-state-race-entry",
+        click: 'a[href="/app-router-state-race/stale"]',
+        to: "/app-router-state-race/stale",
+      },
+      routes: [
+        {
+          ...stateRaceRoutes[0],
+          path: "/app-router-state-race/stale",
+        },
+      ],
+    });
+    assert.equal(staleResponseRace.status, "failed");
+    assert.ok(
+      staleResponseRace.results.every((result) =>
+        result.findings.some((finding) =>
+          /expected-text assertion failed/i.test(finding),
+        ),
+      ),
+    );
+    assert.doesNotMatch(
+      JSON.stringify(staleResponseRace.results),
+      /confirmed hydration mismatch/i,
+    );
+
     const pagesClientNavigation = await scan({
       baseUrl,
       browser: "chromium",
