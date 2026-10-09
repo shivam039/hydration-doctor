@@ -4,6 +4,8 @@
 
 ## Verified foundation
 
+- Package size baseline from `npm pack --dry-run --json`: 0.32.0 is 83,403 packed bytes, 297,587 unpacked bytes, and 91 files. Initial budgets are 102,400 packed bytes, 358,400 unpacked bytes, and 110 files; they cover the npm artifact, not dependency install size or browser downloads. See [bundle/v1 PRDs](releases/PRD_bundle-v1_01-baseline.md) and [issue #84](https://github.com/shivam039/hydration-doctor/issues/84).
+
 - Node.js 20, 22, and 24 CI matrix with lint, unit/integration/CLI/browser tests, format check, package dry-run, and packed-consumer browser scan.
 - The consumer scan installs the tarball into a clean temporary project and scans a local HTTP fixture using the installed CLI.
 - The public API export names and representative behaviors have contract tests. JSON output declares `schemaVersion: 1`; additive fields and pre-1.0 API changes are documented.

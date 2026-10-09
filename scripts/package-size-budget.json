@@ -1,0 +1,11 @@
+{
+  "baselineVersion": "0.32.0",
+  "baseline": {
+    "packedBytes": 83403,
+    "unpackedBytes": 297587,
+    "fileCount": 91
+  },
+  "packedBytes": 102400,
+  "unpackedBytes": 358400,
+  "fileCount": 110
+}
