@@ -1,6 +1,6 @@
 # Hydration Doctor 0.30.0 — Streamed App Router Client Transitions
 
-**Status:** roadmap increment; not an npm publication.
+**Status:** roadmap increment included in the cumulative 0.32.0 release candidate; not published separately.
 
 ## Problem
 

@@ -1,6 +1,6 @@
 # Hydration Doctor 0.32.0 — Release Record Consistency
 
-**Status:** roadmap increment; not an npm publication.
+**Status:** release candidate for npm version 0.32.0; publication and provenance validation are pending.
 
 ## Problem
 
@@ -19,7 +19,7 @@ Release automation checks that a pushed tag matches `package.json`, but reposito
 - Unreleased roadmap entries remain allowed but cannot satisfy the published package-version record.
 - Malformed package JSON/version and missing or duplicate release entries fail with actionable messages.
 - `npm run check`, `npm pack --dry-run`, and `npm run test:consumer` pass.
-- Trusted-publisher CI invokes the same check before publishing; this iteration does not bump or publish a package version.
+- The release commit aligns `package.json`, `package-lock.json`, the changelog candidate entry, and this versioned PRD. The trusted-publisher workflow verifies and publishes the matching `v0.32.0` tag.
 - Adversarial findings and residual limitations are recorded before merge.
 
 ## Tracking

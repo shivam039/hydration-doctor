@@ -1,6 +1,6 @@
 # Hydration Doctor 0.28.0 — Query-Driven App Router Navigation
 
-**Status:** roadmap increment; not an npm publication.
+**Status:** roadmap increment included in the cumulative 0.32.0 release candidate; not published separately.
 
 ## Problem
 

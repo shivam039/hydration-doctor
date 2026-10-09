@@ -32,6 +32,18 @@ test("accepts a package version with one dated published changelog entry and mat
   });
 });
 
+test("accepts a dated release candidate before tag publication", async (t) => {
+  const root = await createReleaseRepository(t);
+  await writeFile(
+    path.join(root, "CHANGELOG.md"),
+    "# Changelog\n\n## 0.27.0 — Release candidate 2026-09-27\n",
+  );
+  assert.deepEqual(await inspectReleaseRecord(root), {
+    version: "0.27.0",
+    errors: [],
+  });
+});
+
 test("rejects a package version without a matching changelog entry", async (t) => {
   const root = await createReleaseRepository(t);
   await writeFile(
@@ -51,7 +63,9 @@ test("rejects roadmap increments mislabeled as the published package version", a
   );
   const result = await inspectReleaseRecord(root);
   assert.ok(
-    result.errors.some((error) => /Published with a valid date/.test(error)),
+    result.errors.some((error) =>
+      /Published or Release candidate with a valid date/.test(error),
+    ),
   );
 });
 
