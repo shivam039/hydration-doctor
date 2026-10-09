@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run check
+      - run: npm run size:check
       - run: npm pack --dry-run
       - run: npm run test:consumer
   browser-smoke:

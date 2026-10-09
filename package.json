@@ -28,6 +28,7 @@
   "scripts": {
     "test": "node --test",
     "release:check": "node scripts/verify-release-record.js",
+    "size:check": "node scripts/package-size.js",
     "test:consumer": "node scripts/consumer-smoke.js",
     "test:browser-smoke": "node scripts/browser-engine-smoke.js",
     "lint": "eslint .",
