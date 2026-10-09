@@ -390,6 +390,86 @@ test(
       forwardText: "activity item ready",
     });
 
+    const streamedClientNavigation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 10_000,
+      navigation: {
+        from: "/app-router-stream-transition",
+        click: 'a[href="/app-router-stream-transition/destination"]',
+        to: "/app-router-stream-transition/destination",
+      },
+      routes: [
+        {
+          path: "/app-router-stream-transition/destination",
+          expectedSelector: "#streamed-transition-ready",
+          expectedText: "Streamed destination ready",
+          readySelector: "#streamed-transition-ready",
+        },
+      ],
+    });
+    assert.equal(
+      streamedClientNavigation.status,
+      "passed",
+      JSON.stringify(
+        streamedClientNavigation.results.map((result) => ({
+          scenario: result.scenario,
+          url: result.url,
+          findings: result.findings,
+        })),
+      ),
+    );
+    const streamedNavigationResult = streamedClientNavigation.results.find(
+      (result) => result.scenario === "client-navigation",
+    );
+    assert.equal(streamedNavigationResult.passed, true);
+    assert.equal(
+      streamedNavigationResult.url,
+      `${baseUrl}/app-router-stream-transition/destination`,
+    );
+    assert.doesNotMatch(
+      streamedNavigationResult.findings.join(" "),
+      /Navigation used a new document request/,
+    );
+
+    const streamedFallbackOrder = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/app-router-stream-transition"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/app-router-stream-transition`, {
+          waitUntil: "domcontentloaded",
+        });
+        await page
+          .getByRole("link", { name: "Open streamed destination" })
+          .click();
+        const fallback = page.locator("#stream-transition-loading");
+        await fallback.waitFor({ state: "visible", timeout: 5000 });
+        const fallbackText = await fallback.textContent();
+        const readyBeforeFallbackSettled = await page
+          .locator("#streamed-transition-ready")
+          .isVisible()
+          .catch(() => false);
+        await page
+          .locator("#streamed-transition-ready")
+          .waitFor({ state: "visible", timeout: 5000 });
+        const readyText = await page
+          .locator("#streamed-transition-ready")
+          .textContent();
+        await page.close();
+        return { fallbackText, readyBeforeFallbackSettled, readyText };
+      },
+    );
+    assert.deepEqual(streamedFallbackOrder, {
+      fallbackText: "Loading streamed destination",
+      readyBeforeFallbackSettled: false,
+      readyText: "Streamed destination ready",
+    });
+
     const pagesClientNavigation = await scan({
       baseUrl,
       browser: "chromium",
