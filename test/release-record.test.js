@@ -50,7 +50,9 @@ test("rejects roadmap increments mislabeled as the published package version", a
     "# Changelog\n\n## 0.27.0 — Unreleased roadmap increment\n",
   );
   const result = await inspectReleaseRecord(root);
-  assert.ok(result.errors.some((error) => /Published with a date/.test(error)));
+  assert.ok(
+    result.errors.some((error) => /Published with a valid date/.test(error)),
+  );
 });
 
 test("rejects duplicate changelog entries for the package version", async (t) => {
@@ -61,6 +63,16 @@ test("rejects duplicate changelog entries for the package version", async (t) =>
   );
   const result = await inspectReleaseRecord(root);
   assert.ok(result.errors.some((error) => /exactly one heading/.test(error)));
+});
+
+test("rejects an impossible publication date", async (t) => {
+  const root = await createReleaseRepository(t);
+  await writeFile(
+    path.join(root, "CHANGELOG.md"),
+    "# Changelog\n\n## 0.27.0 — Published 2026-02-30\n",
+  );
+  const result = await inspectReleaseRecord(root);
+  assert.ok(result.errors.some((error) => /valid date/.test(error)));
 });
 
 test("rejects an invalid package version", async (t) => {

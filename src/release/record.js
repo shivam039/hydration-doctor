@@ -40,10 +40,23 @@ export async function inspectReleaseRecord(root) {
     errors.push(
       `CHANGELOG.md must contain exactly one heading for ${version}.`,
     );
-  } else if (!/—\s+Published\s+\d{4}-\d{2}-\d{2}\s*$/.test(headings[0])) {
-    errors.push(
-      `CHANGELOG.md must mark package version ${version} as Published with a date.`,
+  } else {
+    const publication = headings[0].match(
+      /—\s+Published\s+(\d{4}-\d{2}-\d{2})\s*$/,
     );
+    const publicationDate = publication?.[1];
+    const parsedDate = publicationDate
+      ? new Date(`${publicationDate}T00:00:00.000Z`)
+      : null;
+    if (
+      !parsedDate ||
+      Number.isNaN(parsedDate.valueOf()) ||
+      parsedDate.toISOString().slice(0, 10) !== publicationDate
+    ) {
+      errors.push(
+        `CHANGELOG.md must mark package version ${version} as Published with a valid date.`,
+      );
+    }
   }
 
   const prdPath = path.join(root, "docs", "releases", `PRD_v${version}.md`);
