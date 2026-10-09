@@ -321,6 +321,75 @@ test(
       forwardText: "Activity view ready",
     });
 
+    const dynamicClientNavigation = await scan({
+      baseUrl,
+      browser: "chromium",
+      timeout: 15_000,
+      navigation: {
+        from: "/app-router-dynamic",
+        click: 'a[href="/app-router-dynamic/item/activity"]',
+        to: "/app-router-dynamic/item/activity",
+      },
+      routes: [
+        {
+          path: "/app-router-dynamic/item/activity",
+          expectedSelector: "#dynamic-item-ready",
+          expectedText: "activity item ready",
+          readySelector: "#dynamic-item-ready",
+        },
+      ],
+    });
+    assert.equal(dynamicClientNavigation.status, "passed");
+    const dynamicNavigationResult = dynamicClientNavigation.results.find(
+      (result) => result.scenario === "client-navigation",
+    );
+    assert.equal(dynamicNavigationResult.passed, true);
+    assert.equal(
+      dynamicNavigationResult.url,
+      `${baseUrl}/app-router-dynamic/item/activity`,
+    );
+    assert.doesNotMatch(
+      dynamicNavigationResult.findings.join(" "),
+      /Navigation used a new document request/,
+    );
+
+    const dynamicHistory = await withBrowser(
+      validateConfig({
+        baseUrl,
+        browser: "chromium",
+        timeout: 10_000,
+        routes: ["/app-router-dynamic"],
+      }),
+      async (browser) => {
+        const page = await browser.newPage();
+        await page.goto(`${baseUrl}/app-router-dynamic`, {
+          waitUntil: "domcontentloaded",
+        });
+        await page.getByRole("link", { name: "Open activity item" }).click();
+        await page.waitForURL(`${baseUrl}/app-router-dynamic/item/activity`);
+        const destinationText = await page
+          .locator("#dynamic-item-ready")
+          .textContent();
+        await page.goBack();
+        await page.waitForURL(`${baseUrl}/app-router-dynamic`);
+        const entryText = (await page.locator("main").innerText())
+          .replace(/\s+/g, " ")
+          .trim();
+        await page.goForward();
+        await page.waitForURL(`${baseUrl}/app-router-dynamic/item/activity`);
+        const forwardText = await page
+          .locator("#dynamic-item-ready")
+          .textContent();
+        await page.close();
+        return { destinationText, entryText, forwardText };
+      },
+    );
+    assert.deepEqual(dynamicHistory, {
+      destinationText: "activity item ready",
+      entryText: "Next App Router dynamic segment fixture Open activity item",
+      forwardText: "activity item ready",
+    });
+
     const pagesClientNavigation = await scan({
       baseUrl,
       browser: "chromium",
