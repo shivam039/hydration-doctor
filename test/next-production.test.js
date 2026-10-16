@@ -229,7 +229,11 @@ test(
         },
       ],
     });
-    assert.equal(clientNavigation.status, "passed");
+    assert.equal(
+      clientNavigation.status,
+      "passed",
+      JSON.stringify(clientNavigation, null, 2),
+    );
     const navigationResult = clientNavigation.results[2];
     assert.equal(navigationResult.scenario, "client-navigation");
     assert.equal(navigationResult.passed, true);

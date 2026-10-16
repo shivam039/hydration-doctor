@@ -3,18 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync, realpathSync } from "node:fs";
-import { loadConfig, validateConfig } from "../config/index.js";
-import { scan } from "../runtime/scan.js";
-import { withBrowser } from "../browser/engine.js";
-import {
-  formatHtmlReport,
-  formatJUnitReport,
-  formatJsonReport,
-  formatTerminalReport,
-  formatSarifReport,
-} from "../reporters/index.js";
 import { redactSensitiveText } from "../utils/redact.js";
-import { analyzeStaticSources } from "../analysis/static.js";
 
 const { version: VERSION } = JSON.parse(
   readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
@@ -111,13 +100,17 @@ async function analyzeCommand(options, io) {
   const format = options.format ?? "json";
   if (!new Set(["json", "sarif"]).has(format))
     throw new Error("analyze --format must be json or sarif.");
+  const [{ analyzeStaticSources }, sarifReporter] = await Promise.all([
+    import("../analysis/static.js"),
+    format === "sarif" ? import("../reporters/sarif.js") : Promise.resolve({}),
+  ]);
   const report = await analyzeStaticSources(options.source, {
     excludePatterns: options.exclude
       ? options.exclude.split(",").map((pattern) => pattern.trim())
       : [],
   });
   const output = `${JSON.stringify(
-    format === "sarif" ? formatSarifReport(report) : report,
+    format === "sarif" ? sarifReporter.formatSarifReport(report) : report,
     null,
     2,
   )}\n`;
@@ -151,6 +144,10 @@ async function init(options, io) {
 
 async function doctor(options, io) {
   const browser = options.browser ?? "chromium";
+  const [{ validateConfig }, { withBrowser }] = await Promise.all([
+    import("../config/index.js"),
+    import("../browser/engine.js"),
+  ]);
   const config = validateConfig({
     baseUrl: "http://localhost",
     routes: ["/"],
@@ -164,6 +161,12 @@ async function doctor(options, io) {
 }
 
 async function scanCommand(options, positional, io) {
+  const [{ loadConfig, validateConfig }, { scan }, reportFormats] =
+    await Promise.all([
+      import("../config/index.js"),
+      import("../runtime/scan.js"),
+      import("../reporters/index.js"),
+    ]);
   let config;
   if (options.config) config = await loadConfig(options.config);
   else if (options.url) {
@@ -213,37 +216,46 @@ async function scanCommand(options, positional, io) {
             `hydration-doctor-${report.runId}.${extension}`,
           ),
           reporter === "json"
-            ? `${formatJsonReport(report)}\n`
+            ? `${reportFormats.formatJsonReport(report)}\n`
             : reporter === "html"
-              ? formatHtmlReport(report)
-              : formatJUnitReport(report),
+              ? reportFormats.formatHtmlReport(report)
+              : reportFormats.formatJUnitReport(report),
           { flag: "wx", mode: 0o600 },
         );
       }
     } else if (reporters[0] === "html") {
-      await writeFile(options.output, formatHtmlReport(report), {
+      await writeFile(options.output, reportFormats.formatHtmlReport(report), {
         flag: "wx",
         mode: 0o600,
       });
     } else if (reporters[0] === "json") {
-      await writeFile(options.output, `${formatJsonReport(report)}\n`, {
-        flag: "wx",
-        mode: 0o600,
-      });
+      await writeFile(
+        options.output,
+        `${reportFormats.formatJsonReport(report)}\n`,
+        {
+          flag: "wx",
+          mode: 0o600,
+        },
+      );
     } else if (reporters[0] === "junit") {
-      await writeFile(options.output, formatJUnitReport(report), {
+      await writeFile(options.output, reportFormats.formatJUnitReport(report), {
         flag: "wx",
         mode: 0o600,
       });
     } else {
-      await writeFile(options.output, `${formatJsonReport(report)}\n`, {
-        flag: "wx",
-        mode: 0o600,
-      });
+      await writeFile(
+        options.output,
+        `${reportFormats.formatJsonReport(report)}\n`,
+        {
+          flag: "wx",
+          mode: 0o600,
+        },
+      );
     }
   }
-  if (reporters.includes("json")) io.log(formatJsonReport(report));
-  else io.log(formatTerminalReport(report));
+  if (reporters.includes("json"))
+    io.log(reportFormats.formatJsonReport(report));
+  else io.log(reportFormats.formatTerminalReport(report));
   return report.status === "passed"
     ? 0
     : report.status === "inconclusive"
